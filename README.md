@@ -32,6 +32,14 @@ Acesse `http://localhost:3000`. A rota interna `/api/nucleus/*` encaminha as cha
 
 ## Implantação no Railway
 
+### Opção recomendada: um único serviço
+
+O Dockerfile da raiz inicia a dashboard e o worker Playwright no mesmo container. No Railway, conecte o repositório, mantenha o diretório raiz em `/` e use `/railway.toml` como arquivo de configuração. Não é necessário definir `NUCLEUS_WORKER_INTERNAL_URL`: o endereço padrão `http://localhost:8787` é usado automaticamente.
+
+Gere um domínio público e confirme que `/api/health` retorna `worker: "ok"` antes de usar a extração.
+
+### Opção avançada: serviços separados
+
 O repositório está preparado como um monorepo com dois serviços e Dockerfiles separados.
 
 ### 1. Envie o projeto para um repositório GitHub

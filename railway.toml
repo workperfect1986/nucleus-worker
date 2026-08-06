@@ -1,7 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-watchPatterns = ["app/**", "lib/**", "public/**", "package.json", "pnpm-lock.yaml", "vite.config.ts", "Dockerfile"]
+watchPatterns = ["app/**", "lib/**", "public/**", "services/**", "package.json", "pnpm-lock.yaml", "vite.config.ts", "Dockerfile"]
 
 [deploy]
 healthcheckPath = "/api/health"
