@@ -1,0 +1,7 @@
+{
+  "name": "studio-laser-nucleus-worker",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node index.mjs" },
+  "dependencies": { "playwright": "1.52.0" }
+}

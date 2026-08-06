@@ -1,0 +1,10 @@
+.git
+.next
+.vinext
+.wrangler
+dist
+node_modules
+services/nucleus-worker/node_modules
+*.log
+.env*
+!.env.example
