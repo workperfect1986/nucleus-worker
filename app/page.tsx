@@ -210,7 +210,8 @@ export default function Home() {
   const closedCount = orders.filter((order) => order.isClosed).length;
   const waitingCount = orders.filter((order) => order.status.toLowerCase().includes("aguardando")).length;
 
-  return <main className="app-shell">
+  return <main className="app-shell" aria-busy={refreshing}>
+    <div className="app-interface" inert={refreshing ? true : undefined} aria-hidden={refreshing || undefined}>
     <aside className="sidebar">
       <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
       <nav className="main-nav" aria-label="Navegação principal"><button className="nav-item active"><span>▦</span> Visão geral</button></nav>
@@ -242,5 +243,15 @@ export default function Home() {
       </div>
     </section>
     {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar período</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período que será usado para montar a URL de extração. Todas as páginas encontradas serão percorridas.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={confirmRefresh}>Atualizar e extrair</button></div></section></div>}
+    </div>
+    {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">
+      <section className="sync-lock-card">
+        <span className="sync-spinner" aria-hidden="true" />
+        <div className="eyebrow">SINCRONIZAÇÃO EM ANDAMENTO</div>
+        <h2>Atualizando os trabalhos</h2>
+        <p>Consultando todas as páginas do Nucleus. Aguarde até a conclusão.</p>
+        <div className="sync-progress"><span /></div>
+      </section>
+    </div>}
   </main>;
 }

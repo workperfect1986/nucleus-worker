@@ -65,7 +65,9 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .status-pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(103,200,173,.12); margin-right:10px; }
 
 /* Application shell */
-.app-shell { display:flex; min-height:100vh; background:var(--bg); }
+.app-shell { min-height:100vh; background:var(--bg); }
+.app-interface { display:flex; min-height:100vh; transition:filter .18s ease; }
+.app-interface[aria-hidden="true"] { filter:blur(5px); pointer-events:none; user-select:none; }
 .sidebar { background:var(--sidebar); border-right:1px solid var(--line); width:232px; flex:none; display:flex; flex-direction:column; padding:24px 14px 16px; }
 .sidebar-brand { display:flex; align-items:center; gap:11px; padding:0 9px 48px; }
 .sidebar-brand strong,.sidebar-brand small,.user-row strong,.user-row small,.connection strong,.connection small { display:block; }
@@ -198,6 +200,21 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .modal-error { margin:12px 0 0 !important; }
 .modal-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:25px; }
 .modal-actions .primary-button,.modal-actions .secondary-button { padding:10px 15px; }
+
+/* Global synchronization lock */
+.sync-lock { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgba(5,8,10,.68); backdrop-filter:blur(7px); cursor:wait; }
+.sync-lock-card { width:min(430px,100%); padding:30px; text-align:center; background:#11171c; border:1px solid #334039; border-radius:5px; box-shadow:0 26px 90px rgba(0,0,0,.58); }
+.sync-lock-card .eyebrow { margin-top:20px; }
+.sync-lock-card h2 { margin:10px 0 9px; font-size:22px; font-weight:630; letter-spacing:-.6px; }
+.sync-lock-card p { margin:0 auto; max-width:330px; color:#7f8b93; font-size:11px; line-height:1.6; }
+.sync-spinner { display:block; width:38px; height:38px; margin:0 auto; border:2px solid #27342f; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+.sync-progress { height:2px; margin-top:24px; overflow:hidden; background:#222c2a; }
+.sync-progress span { display:block; width:42%; height:100%; background:var(--accent); animation:sync-progress 1.25s ease-in-out infinite; }
+@keyframes sync-progress { 0% { transform:translateX(-110%); } 100% { transform:translateX(340%); } }
+
+@media (prefers-reduced-motion:reduce) {
+  .sync-spinner,.sync-progress span,.is-refreshing span,.card-refresh.is-refreshing span { animation-duration:2.4s; }
+}
 
 @media (max-width:1200px) {
   .stats-grid { grid-template-columns:repeat(3,1fr); }
