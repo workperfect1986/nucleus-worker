@@ -4,7 +4,7 @@ WORKDIR /app
 RUN npm install --global pnpm@11.16.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod=false
 
 COPY services/nucleus-worker/package.json services/nucleus-worker/pnpm-lock.yaml ./services/nucleus-worker/
 RUN pnpm --dir services/nucleus-worker install --prod --frozen-lockfile
