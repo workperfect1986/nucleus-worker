@@ -210,7 +210,7 @@ export default function ReportPageClient() {
       <div className="app-interface">
         <aside className="sidebar">
           <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-          <nav className="main-nav" aria-label="Navegação principal"><Link href="/" className="nav-item"><span>▦</span> Visão geral</Link><Link href="/dashboard/relatorios" className="nav-item active"><span>◫</span> Relatórios</Link></nav>
+          <nav className="main-nav" aria-label="Navegação principal"><Link href="/" className="nav-item"><span>▦</span> Visão geral</Link><Link href="/relatorios" className="nav-item active"><span>◫</span> Relatórios</Link></nav>
           <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Nucleus conectado</strong><small>{snapshot?.orders.length ?? 0} trabalhos carregados</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
         </aside>
         <section className="workspace">
