@@ -1,4 +1,4 @@
-import ReportPageClient from "../dashboard/relatorios/report-page-client";
+import ReportPageClient from "./report-page-client";
 
 export const dynamic = "force-dynamic";
 

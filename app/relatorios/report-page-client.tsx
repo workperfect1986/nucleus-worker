@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
-import { loadDashboardSnapshot, type DashboardSnapshot } from "../../../lib/dashboard/storage";
-import type { WorkOrder } from "../../../lib/nucleus/normalize";
+import { loadDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
+import type { WorkOrder } from "../../lib/nucleus/normalize";
 
 const formatDate = (value: string) => value.split("-").reverse().join("/");
 
