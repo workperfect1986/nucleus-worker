@@ -216,85 +216,21 @@ export default function ReportPageClient() {
         <section className="workspace">
           <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><Link href="/" className="topbar-report-button">Visão geral</Link><span className="last-sync">Última atualização <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
           <div className="content">
-            <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / RELATÓRIOS</div><h1>Relatório executivo</h1><p>Selecione os dados que deseja exportar em PDF.</p></div><Link href="/" className="refresh-button">← Voltar para a visão geral</Link></div>
-            <div className="report-toolbar">
-              <div className="report-filter-card">
-                <h2>Filtros do relatório</h2>
-                <p>Escolha um ou mais clientes para gerar um relatório segmentado.</p>
-                <div className="report-filter-grid">
-                <label>
-                  <span>Status</span>
-                  <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ReportStatusFilter)}>
-                    <option value="all">Todos os trabalhos</option>
-                    <option value="active">Em andamento</option>
-                    <option value="closed">Encerrados</option>
-                  </select>
-                </label>
-                <div className="client-selector"><span>Clientes</span><div className="client-options"><label className="client-option"><input type="checkbox" checked={selectedClients.length === 0} onChange={() => setSelectedClients([])} /> Todos os clientes</label>{clients.map((client) => <label className="client-option" key={client}><input type="checkbox" checked={selectedClients.includes(client)} onChange={() => toggleClient(client)} /> {client}</label>)}</div><small className="client-selection-label">{clientLabel}</small></div>
-                <label>
-                  <span>Tipo de trabalho</span>
-                  <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-                    <option value="Todos os tipos">Todos os tipos</option>
-                    {workTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="report-actions">
-                <button className="primary-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating}>
-                  {isGenerating ? "Gerando PDF..." : "Gerar PDF em paisagem"}
-                </button>
-                <button className="secondary-button" type="button" onClick={() => {
-                  setStatusFilter("all");
-                  setSelectedClients([]);
-                  setTypeFilter("Todos os tipos");
-                }}>
-                  Limpar filtros
-                </button>
-              </div>
+            <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / RELATÓRIOS</div><h1>Relatório executivo</h1><p>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)} · Selecione os dados para exportar.` : "Sincronize a dashboard para gerar um relatório."}</p></div><button className="refresh-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}><span>↓</span>{isGenerating ? "Gerando PDF..." : "Gerar relatório"}</button></div>
+            <div className="stats-grid">
+              <article className="stat-card"><div className="stat-label">Ordens no relatório <span className="stat-icon blue">↗</span></div><strong>{filteredOrders.length}</strong><small>Após aplicar os filtros</small></article>
+              <article className="stat-card"><div className="stat-label">Em andamento <span className="stat-icon blue">↗</span></div><strong>{activeCount}</strong><small>Trabalhos ativos selecionados</small></article>
+              <article className="stat-card"><div className="stat-label">Encerrados <span className="stat-icon green">✓</span></div><strong>{closedCount}</strong><small>Trabalhos concluídos</small></article>
+              <article className="stat-card"><div className="stat-label">Clientes <span className="stat-icon amber">◷</span></div><strong>{selectedClients.length || clients.length}</strong><small>{clientLabel}</small></article>
+              <article className="stat-card production-card"><div className="stat-label">Origem da importação <span className="stat-icon gray">⟳</span></div><strong>{snapshot?.orders.length ?? 0}</strong><small>Ordens sincronizadas</small></article>
             </div>
-            <div className="report-summary-card">
-              <h2>Resumo</h2>
-              {!snapshot ? (
-                <p className="report-note">Nenhum dado de importação encontrado. Volte à visão geral e sincronize os trabalhos primeiro.</p>
-              ) : (
-                <>
-                  <div className="report-summary-grid">
-                    <div className="report-summary-item">
-                      <strong>{filteredOrders.length}</strong>
-                      <span>Ordens no relatório</span>
-                    </div>
-                    <div className="report-summary-item">
-                      <strong>{activeCount}</strong>
-                      <span>Em andamento</span>
-                    </div>
-                    <div className="report-summary-item">
-                      <strong>{closedCount}</strong>
-                      <span>Encerrados</span>
-                    </div>
-                    <div className="report-summary-item">
-                      <strong>{snapshot.orders.length}</strong>
-                      <span>Origem da importação</span>
-                    </div>
-                  </div>
-                  <div className="report-meta">
-                <div className="report-meta-item">
-                  <strong>Período</strong>
-                  <span>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)}` : "—"}</span>
-                </div>
-                <div className="report-meta-item">
-                  <strong>Última sincronização</strong>
-                  <span>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleString("pt-BR") : "—"}</span>
-                </div>
-              </div>
-                  {statusMessage ? <p className="report-note">{statusMessage}</p> : null}
-                </>
-              )}
-            </div>
-            </div>
+            <section className="orders-section">
+              <div className="section-heading"><div><h2>Ordens do relatório</h2><p>Dados sincronizados do Nucleus.</p></div><div className="report-actions"><button className="secondary-button" type="button" onClick={() => { setStatusFilter("all"); setSelectedClients([]); setTypeFilter("Todos os tipos"); }}>Limpar filtros</button></div></div>
+              <div className="tabs" role="tablist"><button className={statusFilter === "all" ? "selected" : ""} onClick={() => setStatusFilter("all")} role="tab" aria-selected={statusFilter === "all"}>Todos <span>{snapshot?.orders.length ?? 0}</span></button><button className={statusFilter === "active" ? "selected" : ""} onClick={() => setStatusFilter("active")} role="tab" aria-selected={statusFilter === "active"}>Em andamento <span>{activeCount}</span></button><button className={statusFilter === "closed" ? "selected" : ""} onClick={() => setStatusFilter("closed")} role="tab" aria-selected={statusFilter === "closed"}>Encerrados <span>{closedCount}</span></button></div>
+              <div className="filters report-filters"><div className="client-selector"><span>Clientes</span><div className="client-options"><label className="client-option"><input type="checkbox" checked={selectedClients.length === 0} onChange={() => setSelectedClients([])} /> Todos os clientes</label>{clients.map((client) => <label className="client-option" key={client}><input type="checkbox" checked={selectedClients.includes(client)} onChange={() => toggleClient(client)} /> {client}</label>)}</div></div><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtrar tipo de trabalho"><option value="Todos os tipos">Todos os tipos</option>{workTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select><button className="primary-button report-generate-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}>{isGenerating ? "Gerando..." : "Gerar PDF"}</button></div>
+              <div className="table-wrap"><table><thead><tr><th>Ordem</th><th>Cliente / nome</th><th>Trabalho</th><th>Tecnologia</th><th>Tipo</th><th>Criado em</th><th>Status</th></tr></thead><tbody>{filteredOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill ${order.isClosed ? "closed" : order.status.toLowerCase().includes("aguardando") ? "waiting" : "progress"}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td></tr>)}</tbody></table>{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
+              <div className="table-footer"><span>Mostrando <strong>{filteredOrders.length}</strong> ordens de <strong>{snapshot?.orders.length ?? 0}</strong></span>{statusMessage ? <span className="report-status-message">{statusMessage}</span> : null}</div>
+            </section>
           </div>
         </section>
       </div>

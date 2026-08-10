@@ -247,6 +247,13 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .client-option { display:flex; flex-direction:row !important; align-items:center; gap:8px; color:#dfe6ea !important; font-size:11px !important; font-weight:500 !important; letter-spacing:0 !important; text-transform:none !important; cursor:pointer; }
 .client-option input { accent-color:var(--accent); width:14px; height:14px; margin:0; }
 .client-selection-label { color:var(--accent-strong); font-size:10px; font-weight:600; text-transform:none; letter-spacing:0; }
+.report-filters { align-items:flex-end; flex-wrap:wrap; }
+.report-filters .client-selector { flex:1 1 280px; min-width:240px; }
+.report-filters .client-options { max-height:76px; flex-direction:row; flex-wrap:wrap; }
+.report-filters select { align-self:flex-end; }
+.report-generate-button { padding:9px 13px; font-size:10px; }
+.section-heading .report-actions { margin-top:0; }
+.report-status-message { color:var(--accent-strong); margin-left:auto; }
  
 @media (prefers-reduced-motion:reduce) {
   .sync-spinner,.sync-progress span,.is-refreshing span,.card-refresh.is-refreshing span { animation-duration:2.4s; }
