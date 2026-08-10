@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { clearDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
 import { normalizeWorkOrders, type RawWorkOrder } from "../lib/nucleus/normalize";
 
 type ExtractionPayload = {
@@ -54,6 +56,10 @@ export default function Home() {
   const [cm2Loading, setCm2Loading] = useState(false);
   const [cm2Error, setCm2Error] = useState("");
   const [cm2LastSync, setCm2LastSync] = useState<Date | null>(null);
+
+  const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string) => {
+    saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString() });
+  };
 
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
   const technologies = useMemo(() => Array.from(new Set(orders.map((order) => order.technology))).sort(), [orders]);
@@ -123,8 +129,10 @@ export default function Home() {
     setLoginError("");
     try {
       const payload = await extractOrders();
-      setOrders(normalizeWorkOrders(payload.orders ?? []));
+      const nextOrders = normalizeWorkOrders(payload.orders ?? []);
+      setOrders(nextOrders);
       setLastSync(new Date());
+      persistDashboardSnapshot(nextOrders, dateFrom, dateTo, email);
       setNotice(`Sincronização concluída: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
       setNoticeError(false);
       setAuthenticated(true);
@@ -141,10 +149,12 @@ export default function Home() {
     setNotice("");
     try {
       const payload = await extractOrders(requestDateFrom, requestDateTo);
-      setOrders(normalizeWorkOrders(payload.orders ?? []));
+      const nextOrders = normalizeWorkOrders(payload.orders ?? []);
+      setOrders(nextOrders);
       setDateFrom(requestDateFrom);
       setDateTo(requestDateTo);
       setLastSync(new Date());
+      persistDashboardSnapshot(nextOrders, requestDateFrom, requestDateTo, email);
       setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
       setNoticeError(false);
     } catch (error) {
@@ -183,6 +193,7 @@ export default function Home() {
     setTotalCm2(null);
     setCm2Error("");
     setCm2LastSync(null);
+    clearDashboardSnapshot();
   };
 
   if (!authenticated) {
@@ -214,7 +225,7 @@ export default function Home() {
     <div className="app-interface" inert={refreshing ? true : undefined} aria-hidden={refreshing || undefined}>
     <aside className="sidebar">
       <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-      <nav className="main-nav" aria-label="Navegação principal"><button className="nav-item active"><span>▦</span> Visão geral</button></nav>
+      <nav className="main-nav" aria-label="Navegação principal"><button className="nav-item active" type="button"><span>▦</span> Visão geral</button><Link href="/dashboard/relatorios" className="nav-item"><span>◫</span> Relatórios</Link></nav>
       <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Nucleus conectado</strong><small>{orders.length} trabalhos carregados</small></div></div><button className="user-row" onClick={logout}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair da conta</small></span><span className="more">•••</span></button></div>
     </aside>
     <section className="workspace">
