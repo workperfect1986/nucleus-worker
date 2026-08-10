@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { clearDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
 import { normalizeWorkOrders, type RawWorkOrder } from "../lib/nucleus/normalize";
 
@@ -65,8 +64,6 @@ export default function Home() {
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
   const technologies = useMemo(() => Array.from(new Set(orders.map((order) => order.technology))).sort(), [orders]);
   const types = useMemo(() => Array.from(new Set(orders.map((order) => order.type))).sort(), [orders]);
-  const router = useRouter();
-
   const visibleOrders = useMemo(() => orders.filter((order) => {
     const matchesTab = tab === "closed" ? order.isClosed : !order.isClosed;
     const haystack = `${order.id} ${order.client} ${order.name} ${order.work}`.toLowerCase();
@@ -227,11 +224,11 @@ export default function Home() {
     <div className="app-interface" inert={refreshing ? true : undefined} aria-hidden={refreshing || undefined}>
     <aside className="sidebar">
       <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-      <nav className="main-nav" aria-label="Navegação principal"><button className="nav-item active" type="button"><span>▦</span> Visão geral</button><Link href="/dashboard/relatorios" className="nav-item"><span>◫</span> Relatórios</Link></nav>
+      <nav className="main-nav" aria-label="Navegação principal"><button className="nav-item active" type="button"><span>▦</span> Visão geral</button><Link href="/relatorios" className="nav-item"><span>◫</span> Relatórios</Link></nav>
       <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Nucleus conectado</strong><small>{orders.length} trabalhos carregados</small></div></div><button className="user-row" onClick={logout}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair da conta</small></span><span className="more">•••</span></button></div>
     </aside>
     <section className="workspace">
-      <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Visão geral</strong></div><div className="topbar-actions"><button type="button" className="topbar-report-button" onClick={() => router.push('/dashboard/relatorios')}>Gerar relatório</button><span className="last-sync">Última atualização <strong>{lastSync ? formatTime(lastSync) : "—"}</strong></span><div className="top-avatar">{email.slice(0, 1).toUpperCase()}</div></div></header>
+      <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Visão geral</strong></div><div className="topbar-actions"><Link href="/relatorios" className="topbar-report-button">Gerar relatório</Link><span className="last-sync">Última atualização <strong>{lastSync ? formatTime(lastSync) : "—"}</strong></span><div className="top-avatar">{email.slice(0, 1).toUpperCase()}</div></div></header>
       <div className="content">
         <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · {email.split("@")[0]}</p></div><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div>
         {notice && <div className={`notice ${noticeError ? "error" : ""}`}><span>{noticeError ? "!" : "✓"}</span>{notice}</div>}
