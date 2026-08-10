@@ -14,7 +14,7 @@ export default function ReportPageClient() {
   const initialSnapshot = useMemo(() => loadDashboardSnapshot(), []);
   const [snapshot] = useState<DashboardSnapshot | null>(initialSnapshot);
   const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>("all");
-  const [clientFilter, setClientFilter] = useState("Todos os clientes");
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState("Todos os tipos");
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -33,12 +33,24 @@ export default function ReportPageClient() {
         : statusFilter === "active"
           ? !order.isClosed
           : order.isClosed;
-      const matchesClient = clientFilter === "Todos os clientes" || order.client === clientFilter;
+      const matchesClient = selectedClients.length === 0 || selectedClients.includes(order.client);
       const matchesType = typeFilter === "Todos os tipos" || order.type === typeFilter;
 
       return matchesStatus && matchesClient && matchesType;
     });
-  }, [clientFilter, snapshot, statusFilter, typeFilter]);
+  }, [selectedClients, snapshot, statusFilter, typeFilter]);
+
+  const clientLabel = selectedClients.length === 0
+    ? "Todos os clientes"
+    : selectedClients.length === 1
+      ? selectedClients[0]
+      : `${selectedClients.length} clientes selecionados`;
+
+  const toggleClient = (client: string) => {
+    setSelectedClients((current) => current.includes(client)
+      ? current.filter((item) => item !== client)
+      : [...current, client]);
+  };
 
   const activeCount = filteredOrders.filter((order) => !order.isClosed).length;
   const closedCount = filteredOrders.filter((order) => order.isClosed).length;
@@ -84,7 +96,7 @@ export default function ReportPageClient() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(103, 200, 173);
-        doc.text(`Filtrado por ${statusFilter === "all" ? "todos os status" : statusFilter === "active" ? "trabalhos em andamento" : "trabalhos encerrados"} · ${clientFilter} · ${typeFilter}`, margin + 18, 86);
+        doc.text(`Filtrado por ${statusFilter === "all" ? "todos os status" : statusFilter === "active" ? "trabalhos em andamento" : "trabalhos encerrados"} · ${clientLabel} · ${typeFilter}`, margin + 18, 86);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
@@ -194,18 +206,22 @@ export default function ReportPageClient() {
   };
 
   return (
-    <main className="report-shell">
-      <div className="report-content">
-        <div className="report-card">
-          <div className="report-card-header">
-            <div className="eyebrow">STUDIO LASER / RELATÓRIOS</div>
-            <h1>Relatório executivo em PDF</h1>
-            <p>Defina status, cliente e tipo de trabalho para compor um relatório elegante, em modo paisagem e alinhado ao dashboard.</p>
-          </div>
-          <div className="report-toolbar">
-            <div className="report-filter-card">
-              <h2>Filtros do relatório</h2>
-              <div className="report-filter-grid">
+    <main className="app-shell">
+      <div className="app-interface">
+        <aside className="sidebar">
+          <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
+          <nav className="main-nav" aria-label="Navegação principal"><Link href="/" className="nav-item"><span>▦</span> Visão geral</Link><Link href="/dashboard/relatorios" className="nav-item active"><span>◫</span> Relatórios</Link></nav>
+          <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Nucleus conectado</strong><small>{snapshot?.orders.length ?? 0} trabalhos carregados</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
+        </aside>
+        <section className="workspace">
+          <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><Link href="/" className="topbar-report-button">Visão geral</Link><span className="last-sync">Última atualização <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
+          <div className="content">
+            <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / RELATÓRIOS</div><h1>Relatório executivo</h1><p>Selecione os dados que deseja exportar em PDF.</p></div><Link href="/" className="refresh-button">← Voltar para a visão geral</Link></div>
+            <div className="report-toolbar">
+              <div className="report-filter-card">
+                <h2>Filtros do relatório</h2>
+                <p>Escolha um ou mais clientes para gerar um relatório segmentado.</p>
+                <div className="report-filter-grid">
                 <label>
                   <span>Status</span>
                   <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ReportStatusFilter)}>
@@ -214,17 +230,7 @@ export default function ReportPageClient() {
                     <option value="closed">Encerrados</option>
                   </select>
                 </label>
-                <label>
-                  <span>Cliente</span>
-                  <select value={clientFilter} onChange={(event) => setClientFilter(event.target.value)}>
-                    <option value="Todos os clientes">Todos os clientes</option>
-                    {clients.map((client) => (
-                      <option key={client} value={client}>
-                        {client}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="client-selector"><span>Clientes</span><div className="client-options"><label className="client-option"><input type="checkbox" checked={selectedClients.length === 0} onChange={() => setSelectedClients([])} /> Todos os clientes</label>{clients.map((client) => <label className="client-option" key={client}><input type="checkbox" checked={selectedClients.includes(client)} onChange={() => toggleClient(client)} /> {client}</label>)}</div><small className="client-selection-label">{clientLabel}</small></div>
                 <label>
                   <span>Tipo de trabalho</span>
                   <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
@@ -243,7 +249,7 @@ export default function ReportPageClient() {
                 </button>
                 <button className="secondary-button" type="button" onClick={() => {
                   setStatusFilter("all");
-                  setClientFilter("Todos os clientes");
+                  setSelectedClients([]);
                   setTypeFilter("Todos os tipos");
                 }}>
                   Limpar filtros
@@ -287,12 +293,10 @@ export default function ReportPageClient() {
                   {statusMessage ? <p className="report-note">{statusMessage}</p> : null}
                 </>
               )}
-              <Link href="/" className="report-link">
-                ← Voltar para a visão geral
-              </Link>
+            </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );
