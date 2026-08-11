@@ -20,6 +20,10 @@ type ProductionStatsPayload = {
   error?: string;
 };
 
+type ClientsPayload = {
+  clients?: Array<{ id: string; label: string }>;
+};
+
 type DashboardSortKey = "id" | "client" | "work" | "technology" | "type" | "createdAt" | "status";
 type SortDirection = "asc" | "desc";
 
@@ -58,6 +62,7 @@ export default function Home() {
   const [draftDateFrom, setDraftDateFrom] = useState(initialSnapshot?.dateFrom ?? currentMonth.from);
   const [draftDateTo, setDraftDateTo] = useState(initialSnapshot?.dateTo ?? currentMonth.to);
   const [draftClientId, setDraftClientId] = useState("");
+  const [availableClients, setAvailableClients] = useState<Array<{ id: string; label: string }>>([]);
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
   const [dateError, setDateError] = useState("");
   const [technology, setTechnology] = useState("Todas as tecnologias");
@@ -80,7 +85,8 @@ export default function Home() {
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
   const technologies = useMemo(() => Array.from(new Set(orders.map((order) => order.technology))).sort(), [orders]);
   const types = useMemo(() => Array.from(new Set(orders.map((order) => order.type))).sort(), [orders]);
-  const clientOptions = useMemo(() => Array.from(new Map(orders.filter((order) => order.clientId).map((order) => [order.clientId as string, order.client])).entries()).sort((left, right) => left[1].localeCompare(right[1], "pt-BR")), [orders]);
+  const derivedClientOptions = useMemo(() => Array.from(new Map(orders.filter((order) => order.clientId).map((order) => [order.clientId as string, order.client])).entries()).map(([id, label]) => ({ id, label })).sort((left, right) => left.label.localeCompare(right.label, "pt-BR")), [orders]);
+  const clientOptions = availableClients.length > 0 ? availableClients : derivedClientOptions;
   const toggleSort = (nextKey: DashboardSortKey) => {
     if (sortKey === nextKey) {
       setSortDirection((current) => current === "asc" ? "desc" : "asc");
@@ -157,6 +163,16 @@ export default function Home() {
     }
   }
 
+  async function loadClients() {
+    try {
+      const response = await fetch(`${workerUrl}/clients`, { cache: "no-store" });
+      const payload = await response.json() as ClientsPayload;
+      if (response.ok && payload.clients?.length) setAvailableClients(payload.clients);
+    } catch {
+      // The already extracted client list remains available as a fallback.
+    }
+  }
+
   const submitLogin = async (event: FormEvent) => {
     event.preventDefault();
     if (!email.trim() || password.length < 4) {
@@ -204,6 +220,7 @@ export default function Home() {
   };
 
   const openRefreshModal = () => {
+    void loadClients();
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
     setDraftClientId(client === "Todos os clientes" ? "" : orders.find((order) => order.client === client)?.clientId ?? "");
@@ -292,7 +309,7 @@ export default function Home() {
         </section>
       </div>
     </section>
-    {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período e, opcionalmente, um cliente para limitar a extração.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{clientOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={confirmRefresh}>Atualizar e extrair</button></div></section></div>}
+    {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período e, opcionalmente, um cliente para limitar a extração.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{clientOptions.map((clientOption) => <option key={clientOption.id} value={clientOption.id}>{clientOption.label}</option>)}</select></label>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={confirmRefresh}>Atualizar e extrair</button></div></section></div>}
     </div>
     {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">
       <section className="sync-lock-card">

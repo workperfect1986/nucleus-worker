@@ -169,6 +169,26 @@ async function extract(credentials, filters = {}) {
   }
 }
 
+async function extractClients(credentials) {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    await login(page, credentials);
+    await page.goto(ordersUrl, { waitUntil: "domcontentloaded" });
+    if (page.url().includes("/login")) throw new Error("Nucleus session expired during client extraction");
+
+    const options = await page.locator('select[name="company_id"] option').evaluateAll((elements) => elements.map((option) => ({
+      id: option.getAttribute("value")?.trim() || "",
+      label: option.textContent?.trim() || "",
+    })).filter((option) => option.id && option.label));
+    return Array.from(new Map(options.map((option) => [option.id, option])).values()).sort((left, right) => left.label.localeCompare(right.label, "pt-BR"));
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
 async function extractProductionStats(credentials) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
@@ -204,7 +224,18 @@ const server = http.createServer(async (request, response) => {
   if (request.method === "OPTIONS") { response.writeHead(204); response.end(); return; }
   if (request.method === "GET" && (request.url === "/" || request.url === "/health")) {
     response.writeHead(200);
-    response.end(JSON.stringify({ status: "ok", service: "nucleus-worker", endpoints: ["POST /extract", "POST /production-stats"] }));
+    response.end(JSON.stringify({ status: "ok", service: "nucleus-worker", endpoints: ["POST /extract", "POST /production-stats", "GET /clients"] }));
+    return;
+  }
+  if (request.method === "GET" && request.url === "/clients") {
+    try {
+      const credentials = resolveCredentials({});
+      if (!credentials.email || !credentials.password) throw new Error("Credentials are required");
+      const clients = await extractClients(credentials);
+      response.writeHead(200); response.end(JSON.stringify({ clients }));
+    } catch (error) {
+      response.writeHead(502); response.end(JSON.stringify({ error: error instanceof Error ? error.message : "Client extraction failed" }));
+    }
     return;
   }
   if (request.method !== "POST" || !["/extract", "/production-stats"].includes(request.url)) { response.writeHead(404); response.end(JSON.stringify({ error: "Not found" })); return; }

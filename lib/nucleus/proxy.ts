@@ -1,14 +1,14 @@
 const defaultWorkerUrl = "http://localhost:8787";
 const requestTimeoutMs = 10 * 60 * 1000;
 
-export async function proxyNucleusRequest(request: Request, endpoint: "extract" | "production-stats") {
+export async function proxyNucleusRequest(request: Request, endpoint: "extract" | "production-stats" | "clients") {
   const workerUrl = (process.env.NUCLEUS_WORKER_INTERNAL_URL || defaultWorkerUrl).replace(/\/$/, "");
 
   try {
     const upstream = await fetch(`${workerUrl}/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: await request.text(),
+      method: request.method,
+      headers: request.method === "POST" ? { "Content-Type": "application/json" } : undefined,
+      body: request.method === "POST" ? await request.text() : undefined,
       cache: "no-store",
       signal: AbortSignal.timeout(requestTimeoutMs),
     });
