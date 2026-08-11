@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { loadDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
@@ -210,11 +209,11 @@ export default function ReportPageClient() {
       <div className="app-interface">
         <aside className="sidebar">
           <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-          <nav className="main-nav" aria-label="Navegação principal"><Link href="/" className="nav-item"><span>▦</span> Visão geral</Link><Link href="/relatorios" className="nav-item active"><span>◫</span> Relatórios</Link></nav>
+          <nav className="main-nav" aria-label="Navegação principal"><a href="/" className="nav-item"><span>▦</span> Visão geral</a><a href="/relatorios" className="nav-item active"><span>◫</span> Relatórios</a></nav>
           <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Nucleus conectado</strong><small>{snapshot?.orders.length ?? 0} trabalhos carregados</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
         </aside>
         <section className="workspace">
-          <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><Link href="/" className="topbar-report-button">Visão geral</Link><span className="last-sync">Última atualização <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
+          <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><a href="/" className="topbar-report-button">Visão geral</a><span className="last-sync">Última atualização <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
           <div className="content">
             <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / RELATÓRIOS</div><h1>Relatório executivo</h1><p>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)} · Selecione os dados para exportar.` : "Sincronize a dashboard para gerar um relatório."}</p></div><button className="refresh-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}><span>↓</span>{isGenerating ? "Gerando PDF..." : "Gerar relatório"}</button></div>
             <div className="stats-grid">
