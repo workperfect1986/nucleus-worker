@@ -68,6 +68,9 @@ export default function Home() {
   const [cm2Loading, setCm2Loading] = useState(false);
   const [cm2Error, setCm2Error] = useState("");
   const [cm2LastSync, setCm2LastSync] = useState<Date | null>(() => initialSnapshot?.totalCm2UpdatedAt ? new Date(initialSnapshot.totalCm2UpdatedAt) : null);
+  const [cm2AuthModalOpen, setCm2AuthModalOpen] = useState(false);
+  const [cm2AuthEmail, setCm2AuthEmail] = useState("");
+  const [cm2AuthPassword, setCm2AuthPassword] = useState("");
   const [sortKey, setSortKey] = useState<DashboardSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -127,17 +130,16 @@ export default function Home() {
     return payload;
   }
 
-  async function refreshProductionStats() {
-    if (!password) {
-      return;
-    }
+  async function refreshProductionStats(requestEmail = email, requestPassword = password) {
+    if (!requestEmail || !requestPassword) return;
+    const temporaryCredentials = requestPassword !== password;
     setCm2Loading(true);
     setCm2Error("");
     try {
       const response = await fetch(`${workerUrl}/production-stats`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: requestEmail, password: requestPassword }),
       });
       const payload = await response.json() as ProductionStatsPayload;
       if (!response.ok || typeof payload.totalCm2 !== "number") {
@@ -154,8 +156,29 @@ export default function Home() {
       setCm2Error(error instanceof Error ? error.message : "Falha ao atualizar o total de cm².");
     } finally {
       setCm2Loading(false);
+      if (temporaryCredentials) setCm2AuthPassword("");
     }
   }
+
+  const requestProductionStatsRefresh = () => {
+    if (password) {
+      void refreshProductionStats();
+      return;
+    }
+    setCm2AuthEmail(email);
+    setCm2AuthPassword("");
+    setCm2Error("");
+    setCm2AuthModalOpen(true);
+  };
+
+  const confirmProductionStatsRefresh = () => {
+    if (!cm2AuthEmail.trim() || cm2AuthPassword.length < 4) {
+      setCm2Error("Informe o e-mail e a senha para atualizar o total m².");
+      return;
+    }
+    setCm2AuthModalOpen(false);
+    void refreshProductionStats(cm2AuthEmail.trim(), cm2AuthPassword);
+  };
 
   const submitLogin = async (event: FormEvent) => {
     event.preventDefault();
@@ -277,7 +300,7 @@ export default function Home() {
           <article className="stat-card"><div className="stat-label">Aguardando <span className="stat-icon amber">◷</span></div><strong>{waitingCount}</strong><small>Aguardando próxima etapa</small></article>
           <article className="stat-card"><div className="stat-label">Total carregado <span className="stat-icon gray">⟳</span></div><strong>{orders.length}</strong><small><b className="positive">● Conectado</b> ao Nucleus</small></article>
           <article className="stat-card production-card">
-            <div className="stat-label">Total m² do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={refreshProductionStats} disabled={cm2Loading || !password} aria-label="Atualizar total em metros quadrados" title={password ? "Atualizar total em metros quadrados" : "Entre novamente para atualizar o total"}><span>↻</span></button></div>
+            <div className="stat-label">Total m² do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={requestProductionStatsRefresh} disabled={cm2Loading} aria-label="Atualizar total em metros quadrados" title="Atualizar total em metros quadrados"><span>↻</span></button></div>
             <strong className="cm2-value">{cm2Loading && totalCm2 === null ? "—" : totalCm2 === null ? "—" : formatSquareMeters(totalCm2)}{totalCm2 !== null && <em> m²</em>}</strong>
             <small className={cm2Error ? "metric-error" : ""}>{cm2Error ? cm2Error : cm2LastSync ? `Atualizado às ${formatTime(cm2LastSync)}` : totalCm2 !== null ? "Valor salvo · entre novamente para atualizar" : password ? "Carregando produção..." : "Entre novamente para carregar o total"}</small>
           </article>
@@ -292,6 +315,7 @@ export default function Home() {
       </div>
     </section>
     {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar período</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período que será usado para montar a URL de extração. Todas as páginas encontradas serão percorridas.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={confirmRefresh}>Atualizar e extrair</button></div></section></div>}
+    {cm2AuthModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="cm2-auth-title"><div className="modal-header"><div><div className="eyebrow">ATUALIZAÇÃO DO NUCLEUS</div><h2 id="cm2-auth-title">Consultar total m²</h2></div><button className="modal-close" onClick={() => { setCm2AuthModalOpen(false); setCm2AuthPassword(""); }} aria-label="Fechar">×</button></div><p>Informe suas credenciais para consultar o total atualizado. Elas serão usadas somente nesta consulta.</p><div className="auth-form"><label htmlFor="cm2-email">E-mail do Nucleus</label><input id="cm2-email" type="email" value={cm2AuthEmail} onChange={(event) => setCm2AuthEmail(event.target.value)} autoComplete="username" /><label htmlFor="cm2-password">Senha</label><input id="cm2-password" type="password" value={cm2AuthPassword} onChange={(event) => setCm2AuthPassword(event.target.value)} autoComplete="current-password" /></div><div className="modal-actions"><button className="secondary-button" onClick={() => { setCm2AuthModalOpen(false); setCm2AuthPassword(""); }}>Cancelar</button><button className="primary-button" onClick={confirmProductionStatsRefresh}>Consultar total</button></div></section></div>}
     </div>
     {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">
       <section className="sync-lock-card">
