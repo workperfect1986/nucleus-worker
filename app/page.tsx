@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { clearDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
+import { clearDashboardSnapshot, loadDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
 import { normalizeWorkOrders, type RawWorkOrder, type WorkOrder } from "../lib/nucleus/normalize";
 
 type ExtractionPayload = {
@@ -42,25 +42,26 @@ const currentMonth = {
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [email, setEmail] = useState("");
+  const initialSnapshot = useMemo(() => loadDashboardSnapshot(), []);
+  const [authenticated, setAuthenticated] = useState(() => Boolean(initialSnapshot?.email));
+  const [email, setEmail] = useState(() => initialSnapshot?.email ?? "");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
-  const [orders, setOrders] = useState(() => normalizeWorkOrders([]));
+  const [orders, setOrders] = useState(() => initialSnapshot?.orders ?? normalizeWorkOrders([]));
   const [tab, setTab] = useState<"active" | "closed">("active");
   const [query, setQuery] = useState("");
   const [client, setClient] = useState("Todos os clientes");
-  const [dateFrom, setDateFrom] = useState(currentMonth.from);
-  const [dateTo, setDateTo] = useState(currentMonth.to);
-  const [draftDateFrom, setDraftDateFrom] = useState(currentMonth.from);
-  const [draftDateTo, setDraftDateTo] = useState(currentMonth.to);
+  const [dateFrom, setDateFrom] = useState(initialSnapshot?.dateFrom ?? currentMonth.from);
+  const [dateTo, setDateTo] = useState(initialSnapshot?.dateTo ?? currentMonth.to);
+  const [draftDateFrom, setDraftDateFrom] = useState(initialSnapshot?.dateFrom ?? currentMonth.from);
+  const [draftDateTo, setDraftDateTo] = useState(initialSnapshot?.dateTo ?? currentMonth.to);
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
   const [dateError, setDateError] = useState("");
   const [technology, setTechnology] = useState("Todas as tecnologias");
   const [type, setType] = useState("Todos os tipos");
   const [refreshing, setRefreshing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(() => initialSnapshot?.lastSync ? new Date(initialSnapshot.lastSync) : null);
   const [notice, setNotice] = useState("");
   const [noticeError, setNoticeError] = useState(false);
   const [totalCm2, setTotalCm2] = useState<number | null>(null);
