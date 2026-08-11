@@ -23,6 +23,17 @@ function formatQueryDate(value) {
   return `${day}/${month}/${year}`;
 }
 
+function resolveCredentials(body) {
+  if (body?.email && body?.password) {
+    return { email: body.email, password: body.password };
+  }
+
+  return {
+    email: process.env.NUCLEUS_EMAIL,
+    password: process.env.NUCLEUS_PASSWORD,
+  };
+}
+
 function getCurrentMonthRange() {
   const now = new Date();
   const toIso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -199,9 +210,7 @@ const server = http.createServer(async (request, response) => {
   if (request.method !== "POST" || !["/extract", "/production-stats"].includes(request.url)) { response.writeHead(404); response.end(JSON.stringify({ error: "Not found" })); return; }
   try {
     const body = await readJson(request);
-    const credentials = request.url === "/production-stats"
-      ? { email: body.email || process.env.NUCLEUS_EMAIL, password: body.password || process.env.NUCLEUS_PASSWORD }
-      : { email: body.email, password: body.password };
+    const credentials = resolveCredentials(body);
     if (!credentials.email || !credentials.password) throw new Error("Credentials are required");
     if (request.url === "/production-stats") {
       const result = await extractProductionStats(credentials);
