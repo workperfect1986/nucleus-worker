@@ -279,7 +279,7 @@ export default function Home() {
           <article className="stat-card production-card">
             <div className="stat-label">Total m² do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={refreshProductionStats} disabled={cm2Loading || !password} aria-label="Atualizar total em metros quadrados" title={password ? "Atualizar total em metros quadrados" : "Entre novamente para atualizar o total"}><span>↻</span></button></div>
             <strong className="cm2-value">{cm2Loading && totalCm2 === null ? "—" : totalCm2 === null ? "—" : formatSquareMeters(totalCm2)}{totalCm2 !== null && <em> m²</em>}</strong>
-            <small className={cm2Error ? "metric-error" : ""}>{cm2Error ? cm2Error : cm2LastSync ? `Atualizado às ${formatTime(cm2LastSync)}` : totalCm2 !== null ? "Valor salvo · entre novamente para atualizar" : "Carregando produção..."}</small>
+            <small className={cm2Error ? "metric-error" : ""}>{cm2Error ? cm2Error : cm2LastSync ? `Atualizado às ${formatTime(cm2LastSync)}` : totalCm2 !== null ? "Valor salvo · entre novamente para atualizar" : password ? "Carregando produção..." : "Entre novamente para carregar o total"}</small>
           </article>
         </div>
         <section className="orders-section">
