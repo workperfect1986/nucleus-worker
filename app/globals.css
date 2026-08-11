@@ -94,7 +94,7 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .breadcrumb b { color:#333d44; }
 .breadcrumb strong { color:#a2adb4; }
 .topbar-actions { display:flex; align-items:center; gap:18px; }
-.topbar-report-button { display:inline-flex; align-items:center; justify-content:center; padding:9px 13px; border-radius:4px; border:1px solid #35564e; background:#14231f; color:var(--accent-strong); text-decoration:none; font-size:11px; font-weight:700; letter-spacing:.2px; }
+.topbar-report-button { display:inline-flex; align-items:center; justify-content:center; padding:9px 13px; border-radius:4px; border:1px solid #35564e; background:#14231f; color:var(--accent-strong); cursor:pointer; font-size:11px; font-weight:700; letter-spacing:.2px; }
 .topbar-report-button:hover { background:#1a2a25; border-color:#4d756b; color:var(--accent); }
 .last-sync { color:#68747c; font-size:10px; }
 .last-sync strong { color:#b3bcc1; margin-left:5px; }
