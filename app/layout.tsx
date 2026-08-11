@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import UpdateNotifier from "./components/update-notifier";
 
 export const metadata: Metadata = {
   title: "Studio Laser · Central de trabalhos",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body>{children}</body></html>;
+  return <html lang="pt-BR"><body>{children}<UpdateNotifier /></body></html>;
 }

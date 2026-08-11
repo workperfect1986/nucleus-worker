@@ -39,6 +39,8 @@ const currentMonth = {
   to: toDateInput(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
 };
 
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   const [authenticated, setAuthenticated] = useState(false);
   const [email, setEmail] = useState("");

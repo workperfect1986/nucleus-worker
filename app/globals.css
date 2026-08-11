@@ -257,6 +257,9 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .report-generate-button { padding:9px 13px; font-size:10px; }
 .section-heading .report-actions { margin-top:0; }
 .report-status-message { color:var(--accent-strong); margin-left:auto; }
+.update-notifier { align-items:center; background:#173b3b; border:1px solid #2b947b; border-radius:5px; bottom:20px; box-shadow:0 12px 32px rgba(15,42,40,.24); color:#e7f5f0; display:flex; font-size:11px; gap:16px; left:50%; padding:10px 12px 10px 15px; position:fixed; transform:translateX(-50%); z-index:100; }
+.update-notifier button { background:#dff5ed; border:0; border-radius:3px; color:#1d6757; cursor:pointer; font-size:10px; font-weight:750; padding:7px 10px; white-space:nowrap; }
+.update-notifier button:hover { background:#fff; }
 
 .print-report { display:none; }
 
