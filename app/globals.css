@@ -202,6 +202,8 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .modal-date-grid > span { color:#68747c; padding-bottom:11px; font-size:10px; }
 .modal-date-grid label { color:#aab4ba; font-size:10px; font-weight:700; }
 .modal-date-grid input { display:block; width:100%; height:40px; margin-top:7px; border:1px solid #303a42; border-radius:3px; padding:9px 10px; color:#d4dadd; background:#10151a; }
+.modal-client-field { color:#aab4ba; display:block; font-size:10px; font-weight:700; margin-top:16px; }
+.modal-client-field select { display:block; width:100%; height:40px; margin-top:7px; border:1px solid #303a42; border-radius:3px; padding:9px 10px; color:#d4dadd; background:#10151a; }
 .modal-error { margin:12px 0 0 !important; }
 .modal-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:25px; }
 .modal-actions .primary-button,.modal-actions .secondary-button { padding:10px 15px; }

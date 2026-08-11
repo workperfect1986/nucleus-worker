@@ -57,6 +57,7 @@ export default function Home() {
   const [dateTo, setDateTo] = useState(initialSnapshot?.dateTo ?? currentMonth.to);
   const [draftDateFrom, setDraftDateFrom] = useState(initialSnapshot?.dateFrom ?? currentMonth.from);
   const [draftDateTo, setDraftDateTo] = useState(initialSnapshot?.dateTo ?? currentMonth.to);
+  const [draftClientId, setDraftClientId] = useState("");
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
   const [dateError, setDateError] = useState("");
   const [technology, setTechnology] = useState("Todas as tecnologias");
@@ -79,6 +80,7 @@ export default function Home() {
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
   const technologies = useMemo(() => Array.from(new Set(orders.map((order) => order.technology))).sort(), [orders]);
   const types = useMemo(() => Array.from(new Set(orders.map((order) => order.type))).sort(), [orders]);
+  const clientOptions = useMemo(() => Array.from(new Map(orders.filter((order) => order.clientId).map((order) => [order.clientId as string, order.client])).entries()).sort((left, right) => left[1].localeCompare(right[1], "pt-BR")), [orders]);
   const toggleSort = (nextKey: DashboardSortKey) => {
     if (sortKey === nextKey) {
       setSortDirection((current) => current === "asc" ? "desc" : "asc");
@@ -107,8 +109,8 @@ export default function Home() {
     return sortDirection === "asc" ? comparison : -comparison;
   }), [client, dateFrom, dateTo, orders, query, sortDirection, sortKey, tab, technology, type]);
 
-  async function extractOrders(requestDateFrom = dateFrom, requestDateTo = dateTo) {
-    const clientId = orders.find((order) => order.client === client)?.clientId;
+  async function extractOrders(requestDateFrom = dateFrom, requestDateTo = dateTo, requestClientId?: string) {
+    const clientId = requestClientId !== undefined ? requestClientId : orders.find((order) => order.client === client)?.clientId;
     let response: Response;
     try {
       response = await fetch(`${workerUrl}/extract`, {
@@ -180,11 +182,11 @@ export default function Home() {
     }
   };
 
-  const refresh = async (requestDateFrom: string, requestDateTo: string) => {
+  const refresh = async (requestDateFrom: string, requestDateTo: string, requestClientId?: string) => {
     setRefreshing(true);
     setNotice("");
     try {
-      const payload = await extractOrders(requestDateFrom, requestDateTo);
+      const payload = await extractOrders(requestDateFrom, requestDateTo, requestClientId);
       const nextOrders = normalizeWorkOrders(payload.orders ?? []);
       setOrders(nextOrders);
       setDateFrom(requestDateFrom);
@@ -204,6 +206,7 @@ export default function Home() {
   const openRefreshModal = () => {
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
+    setDraftClientId(client === "Todos os clientes" ? "" : orders.find((order) => order.client === client)?.clientId ?? "");
     setDateError("");
     setRefreshModalOpen(true);
   };
@@ -218,7 +221,7 @@ export default function Home() {
       return;
     }
     setRefreshModalOpen(false);
-    await refresh(draftDateFrom, draftDateTo);
+    await refresh(draftDateFrom, draftDateTo, draftClientId || undefined);
   };
 
   const logout = () => {
@@ -289,7 +292,7 @@ export default function Home() {
         </section>
       </div>
     </section>
-    {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar período</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período que será usado para montar a URL de extração. Todas as páginas encontradas serão percorridas.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={confirmRefresh}>Atualizar e extrair</button></div></section></div>}
+    {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período e, opcionalmente, um cliente para limitar a extração.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{clientOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={confirmRefresh}>Atualizar e extrair</button></div></section></div>}
     </div>
     {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">
       <section className="sync-lock-card">
