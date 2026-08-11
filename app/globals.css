@@ -378,6 +378,23 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .status-pill.progress { color:#4684bb !important; }
 .status-pill.waiting { color:#b27a20 !important; }
 .status-pill.closed { color:#278a68 !important; }
+.nucleus-status-development-recording,.nucleus-status-assembly-bl,.nucleus-status-development-bl,.nucleus-status-re-recording-bl,.nucleus-status-recording-bl,.nucleus-status-recording-simple-fast,.nucleus-status-complex-change,.nucleus-status-urgent-replacement { color:#fff !important; }
+.nucleus-status-development-recording { background:#f00000 !important; border-color:#f00000 !important; }
+.nucleus-status-assembly-bl { background:#7030a0 !important; border-color:#7030a0 !important; }
+.nucleus-status-development-bl { background:#00a6e8 !important; border-color:#00a6e8 !important; }
+.nucleus-status-re-recording-bl { background:#00b050 !important; border-color:#00b050 !important; }
+.nucleus-status-recording-bl { background:#ed7d31 !important; border-color:#ed7d31 !important; }
+.nucleus-status-assembly-be { background:#c9b3df !important; border-color:#c9b3df !important; color:#34464e !important; }
+.nucleus-status-development-be { background:#8fdcf5 !important; border-color:#8fdcf5 !important; color:#34464e !important; }
+.nucleus-status-re-recording-be { background:#70f2bc !important; border-color:#70f2bc !important; color:#245744 !important; }
+.nucleus-status-recording-fast { background:#ffe699 !important; border-color:#ffe699 !important; color:#5d521e !important; }
+.nucleus-status-recording-simple-fast { background:#808000 !important; border-color:#808000 !important; }
+.nucleus-status-jpg { background:#ffff00 !important; border-color:#ffff00 !important; color:#4b4b00 !important; }
+.nucleus-status-complex-change { background:#f000d9 !important; border-color:#f000d9 !important; }
+.nucleus-status-simple-change { background:#39ff14 !important; border-color:#39ff14 !important; color:#185d10 !important; }
+.nucleus-status-proof { background:#eeeeee !important; border-color:#d8d8d8 !important; color:#5c6265 !important; }
+.nucleus-status-urgent-replacement { background:#111111 !important; border-color:#111111 !important; }
+.nucleus-status-default { background:#edf1f2 !important; border-color:#d6dfe2 !important; color:#596971 !important; }
 .secondary-button,.filter-button { background:#fff; border-color:#cbd6da; color:#5c6c74; }
 .secondary-button:hover { background:#f0f5f4; border-color:#9fc7bb; color:#287d69; }
 .table-footer { border-top-color:var(--line); color:#78868d; }
