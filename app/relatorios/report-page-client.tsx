@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { jsPDF } from "jspdf";
 import { loadDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
 import type { WorkOrder } from "../../lib/nucleus/normalize";
@@ -58,6 +59,15 @@ export default function ReportPageClient() {
     if (!snapshot) {
       return;
     }
+
+    setIsGenerating(true);
+    setStatusMessage("Abrindo a visualização de impressão...");
+    window.setTimeout(() => {
+      window.print();
+      setIsGenerating(false);
+      setStatusMessage(`Relatório pronto para salvar em PDF com ${filteredOrders.length} ordem(s).`);
+    }, 0);
+    return;
 
     setIsGenerating(true);
     setStatusMessage("");
@@ -205,15 +215,16 @@ export default function ReportPageClient() {
   };
 
   return (
+    <>
     <main className="app-shell">
       <div className="app-interface">
         <aside className="sidebar">
           <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-          <nav className="main-nav" aria-label="Navegação principal"><a href="/" className="nav-item"><span>▦</span> Visão geral</a><a href="/relatorios" className="nav-item active"><span>◫</span> Relatórios</a></nav>
+          <nav className="main-nav" aria-label="Navegação principal"><Link href="/" className="nav-item"><span>▦</span> Visão geral</Link><a href="/relatorios" className="nav-item active"><span>◫</span> Relatórios</a></nav>
           <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Nucleus conectado</strong><small>{snapshot?.orders.length ?? 0} trabalhos carregados</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
         </aside>
         <section className="workspace">
-          <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><a href="/" className="topbar-report-button">Visão geral</a><span className="last-sync">Última atualização <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
+          <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><Link href="/" className="topbar-report-button">Visão geral</Link><span className="last-sync">Última atualização <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
           <div className="content">
             <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / RELATÓRIOS</div><h1>Relatório executivo</h1><p>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)} · Selecione os dados para exportar.` : "Sincronize a dashboard para gerar um relatório."}</p></div><button className="refresh-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}><span>↓</span>{isGenerating ? "Gerando PDF..." : "Gerar relatório"}</button></div>
             <div className="stats-grid">
@@ -234,5 +245,43 @@ export default function ReportPageClient() {
         </section>
       </div>
     </main>
+    <section className="print-report" aria-hidden="true">
+      <header className="print-report-header">
+        <div>
+          <div className="print-kicker">STUDIO LASER · OPERAÇÕES</div>
+          <h1>Relatório executivo</h1>
+          <p>Produção consolidada do período selecionado</p>
+        </div>
+        <div className="print-brand-mark">SL</div>
+      </header>
+      <div className="print-report-meta">
+        <div><span>Período</span><strong>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)}` : "—"}</strong></div>
+        <div><span>Gerado em</span><strong>{new Date().toLocaleString("pt-BR")}</strong></div>
+        <div><span>Filtros</span><strong>{clientLabel} · {typeFilter} · {statusFilter === "all" ? "Todos os status" : statusFilter === "active" ? "Em andamento" : "Encerrados"}</strong></div>
+      </div>
+      <div className="print-report-summary">
+        <div><span>Ordens no relatório</span><strong>{filteredOrders.length}</strong></div>
+        <div><span>Em andamento</span><strong>{activeCount}</strong></div>
+        <div><span>Encerrados</span><strong>{closedCount}</strong></div>
+        <div><span>Clientes</span><strong>{selectedClients.length || clients.length}</strong></div>
+      </div>
+      <div className="print-report-table-wrap">
+        <table>
+          <thead><tr><th>Ordem</th><th>Cliente / nome</th><th>Trabalho</th><th>Tecnologia</th><th>Tipo</th><th>Criado em</th><th>Status</th></tr></thead>
+          <tbody>{filteredOrders.map((order) => <tr key={`print-${order.id}-${order.work}`}>
+            <td><strong>#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td>
+            <td><strong>{order.client}</strong><small>{order.name}</small></td>
+            <td><strong>{order.work}</strong></td>
+            <td>{order.technology}<small>{order.thickness} mm</small></td>
+            <td>{order.type}</td>
+            <td>{order.createdAt.split(" às ")[0]}<small>{order.createdAt.split(" às ")[1]}</small></td>
+            <td><span className={`print-status ${order.isClosed ? "closed" : "active"}`}>{order.isClosed ? "Encerrado" : order.status}</span></td>
+          </tr>)}</tbody>
+        </table>
+        {filteredOrders.length === 0 && <div className="print-empty-state"><strong>Nenhuma ordem encontrada</strong><span>Não há dados para os filtros selecionados.</span></div>}
+      </div>
+      <footer className="print-report-footer"><span>Studio Laser · Relatório de produção</span><span>Documento gerado pelo Nucleus Painel</span></footer>
+    </section>
+    </>
   );
 }
