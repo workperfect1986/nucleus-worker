@@ -199,7 +199,9 @@ const server = http.createServer(async (request, response) => {
   if (request.method !== "POST" || !["/extract", "/production-stats"].includes(request.url)) { response.writeHead(404); response.end(JSON.stringify({ error: "Not found" })); return; }
   try {
     const body = await readJson(request);
-    const credentials = { email: body.email, password: body.password };
+    const credentials = request.url === "/production-stats"
+      ? { email: body.email || process.env.NUCLEUS_EMAIL, password: body.password || process.env.NUCLEUS_PASSWORD }
+      : { email: body.email, password: body.password };
     if (!credentials.email || !credentials.password) throw new Error("Credentials are required");
     if (request.url === "/production-stats") {
       const result = await extractProductionStats(credentials);
