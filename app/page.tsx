@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { clearDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
-import { normalizeWorkOrders, type RawWorkOrder } from "../lib/nucleus/normalize";
+import { normalizeWorkOrders, type RawWorkOrder, type WorkOrder } from "../lib/nucleus/normalize";
 
 type ExtractionPayload = {
   orders?: RawWorkOrder[];
@@ -17,6 +17,16 @@ type ProductionStatsPayload = {
   totalCm2?: number;
   extractedAt?: string;
   error?: string;
+};
+
+type DashboardSortKey = "id" | "client" | "work" | "technology" | "type" | "createdAt" | "status";
+type SortDirection = "asc" | "desc";
+
+const getDashboardSortValue = (order: WorkOrder, key: DashboardSortKey) => {
+  if (key === "id") return Number(order.id);
+  if (key === "createdAt") return order.createdAt.split(" às ")[0].split("/").reverse().join("-");
+  if (key === "status") return order.isClosed ? "Encerrado" : order.status;
+  return order[key];
 };
 
 const workerUrl = process.env.NEXT_PUBLIC_NUCLEUS_WORKER_URL || "/api/nucleus";
@@ -55,6 +65,8 @@ export default function Home() {
   const [cm2Loading, setCm2Loading] = useState(false);
   const [cm2Error, setCm2Error] = useState("");
   const [cm2LastSync, setCm2LastSync] = useState<Date | null>(null);
+  const [sortKey, setSortKey] = useState<DashboardSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string) => {
     saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString() });
@@ -63,6 +75,16 @@ export default function Home() {
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
   const technologies = useMemo(() => Array.from(new Set(orders.map((order) => order.technology))).sort(), [orders]);
   const types = useMemo(() => Array.from(new Set(orders.map((order) => order.type))).sort(), [orders]);
+  const toggleSort = (nextKey: DashboardSortKey) => {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection("asc");
+  };
+
+  const sortIndicator = (key: DashboardSortKey) => sortKey === key ? (sortDirection === "asc" ? "↑" : "↓") : "↕";
   const visibleOrders = useMemo(() => orders.filter((order) => {
     const matchesTab = tab === "closed" ? order.isClosed : !order.isClosed;
     const haystack = `${order.id} ${order.client} ${order.name} ${order.work}`.toLowerCase();
@@ -72,7 +94,14 @@ export default function Home() {
       (!dateFrom || orderDate >= dateFrom) && (!dateTo || orderDate <= dateTo) &&
       (technology === "Todas as tecnologias" || order.technology === technology) &&
       (type === "Todos os tipos" || order.type === type);
-  }), [client, dateFrom, dateTo, orders, query, tab, technology, type]);
+  }).sort((left, right) => {
+    const leftValue = getDashboardSortValue(left, sortKey);
+    const rightValue = getDashboardSortValue(right, sortKey);
+    const comparison = typeof leftValue === "number" && typeof rightValue === "number"
+      ? leftValue - rightValue
+      : String(leftValue).localeCompare(String(rightValue), "pt-BR", { numeric: true, sensitivity: "base" });
+    return sortDirection === "asc" ? comparison : -comparison;
+  }), [client, dateFrom, dateTo, orders, query, sortDirection, sortKey, tab, technology, type]);
 
   async function extractOrders(requestDateFrom = dateFrom, requestDateTo = dateTo) {
     const clientId = orders.find((order) => order.client === client)?.clientId;
@@ -246,7 +275,7 @@ export default function Home() {
           <div className="section-heading"><div><h2>Ordens de serviço</h2><p>Dados sincronizados do Nucleus.</p></div></div>
           <div className="tabs" role="tablist"><button className={tab === "active" ? "selected" : ""} onClick={() => setTab("active")} role="tab" aria-selected={tab === "active"}>Em andamento <span>{activeCount}</span></button><button className={tab === "closed" ? "selected" : ""} onClick={() => setTab("closed")} role="tab" aria-selected={tab === "closed"}>Encerrados <span>{closedCount}</span></button></div>
           <div className="filters"><div className="search-wrap"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por cliente, nome ou número..." aria-label="Buscar ordens" /></div><select value={client} onChange={(event) => setClient(event.target.value)} aria-label="Filtrar cliente"><option>Todos os clientes</option>{clients.map((item) => <option key={item}>{item}</option>)}</select><select value={technology} onChange={(event) => setTechnology(event.target.value)} aria-label="Filtrar tecnologia"><option>Todas as tecnologias</option>{technologies.map((item) => <option key={item}>{item}</option>)}</select><select value={type} onChange={(event) => setType(event.target.value)} aria-label="Filtrar tipo"><option>Todos os tipos</option>{types.map((item) => <option key={item}>{item}</option>)}</select></div>
-          <div className="table-wrap"><table><thead><tr><th>Ordem</th><th>Cliente / nome</th><th>Trabalho</th><th>Tecnologia</th><th>Tipo</th><th>Criado em</th><th>Status</th><th aria-label="Ações" /></tr></thead><tbody>{visibleOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill ${order.isClosed ? "closed" : order.status.toLowerCase().includes("aguardando") ? "waiting" : "progress"}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td><td><button className="row-more" aria-label={`Ações para ${order.id}`}>•••</button></td></tr>)}</tbody></table>{visibleOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Tente ajustar a aba ou os filtros.</span></div>}</div>
+          <div className="table-wrap"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("work")}>Trabalho <span>{sortIndicator("work")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("technology")}>Tecnologia <span>{sortIndicator("technology")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("type")}>Tipo <span>{sortIndicator("type")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th><th aria-label="Ações" /></tr></thead><tbody>{visibleOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill ${order.isClosed ? "closed" : order.status.toLowerCase().includes("aguardando") ? "waiting" : "progress"}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td><td><button className="row-more" aria-label={`Ações para ${order.id}`}>•••</button></td></tr>)}</tbody></table>{visibleOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Tente ajustar a aba ou os filtros.</span></div>}</div>
           <div className="table-footer"><span>Mostrando <strong>{visibleOrders.length}</strong> de <strong>{tab === "closed" ? closedCount : activeCount}</strong> ordens</span></div>
         </section>
       </div>

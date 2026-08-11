@@ -162,6 +162,9 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .table-wrap { overflow-x:auto; }
 .table-wrap table { width:100%; border-collapse:collapse; min-width:980px; }
 .table-wrap th { background:#0e1317; color:#66727b; font-size:9px; font-weight:750; letter-spacing:.75px; text-transform:uppercase; text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+.table-sort-button { align-items:center; background:transparent; border:0; color:inherit; cursor:pointer; display:inline-flex; font:inherit; gap:7px; letter-spacing:inherit; padding:0; text-align:left; text-transform:inherit; }
+.table-sort-button span { color:var(--accent); font-size:11px; line-height:1; opacity:.9; }
+.table-sort-button:hover { color:var(--accent-strong); }
 .table-wrap td { padding:13px 14px; border-bottom:1px solid var(--line-soft); vertical-align:middle; white-space:nowrap; transition:background .12s; }
 .table-wrap tbody tr:hover td { background:#151c21; }
 .table-wrap tr:last-child td { border-bottom:0; }

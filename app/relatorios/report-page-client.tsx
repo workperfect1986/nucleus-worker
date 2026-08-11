@@ -9,6 +9,15 @@ import type { WorkOrder } from "../../lib/nucleus/normalize";
 const formatDate = (value: string) => value.split("-").reverse().join("/");
 
 type ReportStatusFilter = "all" | "active" | "closed";
+type ReportSortKey = "id" | "client" | "work" | "technology" | "type" | "createdAt" | "status";
+type SortDirection = "asc" | "desc";
+
+const getReportSortValue = (order: WorkOrder, key: ReportSortKey) => {
+  if (key === "id") return Number(order.id);
+  if (key === "createdAt") return order.createdAt.split(" às ")[0].split("/").reverse().join("-");
+  if (key === "status") return order.isClosed ? "Encerrado" : order.status;
+  return order[key];
+};
 
 export default function ReportPageClient() {
   const initialSnapshot = useMemo(() => loadDashboardSnapshot(), []);
@@ -18,10 +27,22 @@ export default function ReportPageClient() {
   const [typeFilter, setTypeFilter] = useState("Todos os tipos");
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [sortKey, setSortKey] = useState<ReportSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const clients = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.client) ?? [])).sort(), [snapshot]);
   const workTypes = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.type) ?? [])).sort(), [snapshot]);
 
+  const toggleSort = (nextKey: ReportSortKey) => {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection("asc");
+  };
+
+  const sortIndicator = (key: ReportSortKey) => sortKey === key ? (sortDirection === "asc" ? "↑" : "↓") : "↕";
   const filteredOrders = useMemo(() => {
     if (!snapshot) {
       return [] as WorkOrder[];
@@ -37,8 +58,15 @@ export default function ReportPageClient() {
       const matchesType = typeFilter === "Todos os tipos" || order.type === typeFilter;
 
       return matchesStatus && matchesClient && matchesType;
+    }).sort((left, right) => {
+      const leftValue = getReportSortValue(left, sortKey);
+      const rightValue = getReportSortValue(right, sortKey);
+      const comparison = typeof leftValue === "number" && typeof rightValue === "number"
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue), "pt-BR", { numeric: true, sensitivity: "base" });
+      return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [selectedClients, snapshot, statusFilter, typeFilter]);
+  }, [selectedClients, snapshot, sortDirection, sortKey, statusFilter, typeFilter]);
 
   const clientLabel = selectedClients.length === 0
     ? "Todos os clientes"
@@ -238,7 +266,7 @@ export default function ReportPageClient() {
               <div className="section-heading"><div><h2>Ordens do relatório</h2><p>Dados sincronizados do Nucleus.</p></div><div className="report-actions"><button className="secondary-button" type="button" onClick={() => { setStatusFilter("all"); setSelectedClients([]); setTypeFilter("Todos os tipos"); }}>Limpar filtros</button></div></div>
               <div className="tabs" role="tablist"><button className={statusFilter === "all" ? "selected" : ""} onClick={() => setStatusFilter("all")} role="tab" aria-selected={statusFilter === "all"}>Todos <span>{snapshot?.orders.length ?? 0}</span></button><button className={statusFilter === "active" ? "selected" : ""} onClick={() => setStatusFilter("active")} role="tab" aria-selected={statusFilter === "active"}>Em andamento <span>{activeCount}</span></button><button className={statusFilter === "closed" ? "selected" : ""} onClick={() => setStatusFilter("closed")} role="tab" aria-selected={statusFilter === "closed"}>Encerrados <span>{closedCount}</span></button></div>
               <div className="filters report-filters"><div className="client-selector"><span>Clientes</span><div className="client-options"><label className="client-option"><input type="checkbox" checked={selectedClients.length === 0} onChange={() => setSelectedClients([])} /> Todos os clientes</label>{clients.map((client) => <label className="client-option" key={client}><input type="checkbox" checked={selectedClients.includes(client)} onChange={() => toggleClient(client)} /> {client}</label>)}</div></div><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtrar tipo de trabalho"><option value="Todos os tipos">Todos os tipos</option>{workTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select><button className="primary-button report-generate-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}>{isGenerating ? "Gerando..." : "Gerar PDF"}</button></div>
-              <div className="table-wrap"><table><thead><tr><th>Ordem</th><th>Cliente / nome</th><th>Trabalho</th><th>Tecnologia</th><th>Tipo</th><th>Criado em</th><th>Status</th></tr></thead><tbody>{filteredOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill ${order.isClosed ? "closed" : order.status.toLowerCase().includes("aguardando") ? "waiting" : "progress"}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td></tr>)}</tbody></table>{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
+              <div className="table-wrap"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("work")}>Trabalho <span>{sortIndicator("work")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("technology")}>Tecnologia <span>{sortIndicator("technology")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("type")}>Tipo <span>{sortIndicator("type")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th></tr></thead><tbody>{filteredOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill ${order.isClosed ? "closed" : order.status.toLowerCase().includes("aguardando") ? "waiting" : "progress"}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td></tr>)}</tbody></table>{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
               <div className="table-footer"><span>Mostrando <strong>{filteredOrders.length}</strong> ordens de <strong>{snapshot?.orders.length ?? 0}</strong></span>{statusMessage ? <span className="report-status-message">{statusMessage}</span> : null}</div>
             </section>
           </div>
