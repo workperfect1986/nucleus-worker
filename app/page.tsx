@@ -67,12 +67,12 @@ export default function Home() {
   const [totalCm2, setTotalCm2] = useState<number | null>(() => typeof initialSnapshot?.totalCm2 === "number" ? initialSnapshot.totalCm2 : null);
   const [cm2Loading, setCm2Loading] = useState(false);
   const [cm2Error, setCm2Error] = useState("");
-  const [cm2LastSync, setCm2LastSync] = useState<Date | null>(null);
+  const [cm2LastSync, setCm2LastSync] = useState<Date | null>(() => initialSnapshot?.totalCm2UpdatedAt ? new Date(initialSnapshot.totalCm2UpdatedAt) : null);
   const [sortKey, setSortKey] = useState<DashboardSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string, nextTotalCm2 = totalCm2) => {
-    saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString(), totalCm2: nextTotalCm2 ?? undefined });
+    saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString(), totalCm2: nextTotalCm2 ?? undefined, totalCm2UpdatedAt: cm2LastSync?.toISOString() });
   };
 
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
@@ -128,6 +128,9 @@ export default function Home() {
   }
 
   async function refreshProductionStats() {
+    if (!password) {
+      return;
+    }
     setCm2Loading(true);
     setCm2Error("");
     try {
@@ -140,11 +143,12 @@ export default function Home() {
       if (!response.ok || typeof payload.totalCm2 !== "number") {
         throw new Error(payload.error || "Não foi possível extrair o total de cm².");
       }
+      const updatedAt = payload.extractedAt ? new Date(payload.extractedAt) : new Date();
       setTotalCm2(payload.totalCm2);
-      setCm2LastSync(payload.extractedAt ? new Date(payload.extractedAt) : new Date());
+      setCm2LastSync(updatedAt);
       const savedSnapshot = loadDashboardSnapshot();
       if (savedSnapshot) {
-        saveDashboardSnapshot({ ...savedSnapshot, totalCm2: payload.totalCm2 });
+        saveDashboardSnapshot({ ...savedSnapshot, totalCm2: payload.totalCm2, totalCm2UpdatedAt: updatedAt.toISOString() });
       }
     } catch (error) {
       setCm2Error(error instanceof Error ? error.message : "Falha ao atualizar o total de cm².");
@@ -273,9 +277,9 @@ export default function Home() {
           <article className="stat-card"><div className="stat-label">Aguardando <span className="stat-icon amber">◷</span></div><strong>{waitingCount}</strong><small>Aguardando próxima etapa</small></article>
           <article className="stat-card"><div className="stat-label">Total carregado <span className="stat-icon gray">⟳</span></div><strong>{orders.length}</strong><small><b className="positive">● Conectado</b> ao Nucleus</small></article>
           <article className="stat-card production-card">
-            <div className="stat-label">Total m² do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={refreshProductionStats} disabled={cm2Loading} aria-label="Atualizar total em metros quadrados" title="Atualizar total em metros quadrados"><span>↻</span></button></div>
+            <div className="stat-label">Total m² do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={refreshProductionStats} disabled={cm2Loading || !password} aria-label="Atualizar total em metros quadrados" title={password ? "Atualizar total em metros quadrados" : "Entre novamente para atualizar o total"}><span>↻</span></button></div>
             <strong className="cm2-value">{cm2Loading && totalCm2 === null ? "—" : totalCm2 === null ? "—" : formatSquareMeters(totalCm2)}{totalCm2 !== null && <em> m²</em>}</strong>
-            <small className={cm2Error ? "metric-error" : ""}>{cm2Error ? "Não foi possível atualizar" : cm2LastSync ? `Atualizado às ${formatTime(cm2LastSync)}` : "Carregando produção..."}</small>
+            <small className={cm2Error ? "metric-error" : ""}>{cm2Error ? cm2Error : cm2LastSync ? `Atualizado às ${formatTime(cm2LastSync)}` : totalCm2 !== null ? "Valor salvo · entre novamente para atualizar" : "Carregando produção..."}</small>
           </article>
         </div>
         <section className="orders-section">

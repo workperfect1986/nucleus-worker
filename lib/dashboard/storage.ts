@@ -7,6 +7,7 @@ export type DashboardSnapshot = {
   email: string;
   lastSync?: string;
   totalCm2?: number;
+  totalCm2UpdatedAt?: string;
 };
 
 const STORAGE_KEY = "studio-laser-dashboard-snapshot";
