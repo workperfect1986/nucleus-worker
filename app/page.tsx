@@ -64,15 +64,15 @@ export default function Home() {
   const [lastSync, setLastSync] = useState<Date | null>(() => initialSnapshot?.lastSync ? new Date(initialSnapshot.lastSync) : null);
   const [notice, setNotice] = useState("");
   const [noticeError, setNoticeError] = useState(false);
-  const [totalCm2, setTotalCm2] = useState<number | null>(null);
+  const [totalCm2, setTotalCm2] = useState<number | null>(() => typeof initialSnapshot?.totalCm2 === "number" ? initialSnapshot.totalCm2 : null);
   const [cm2Loading, setCm2Loading] = useState(false);
   const [cm2Error, setCm2Error] = useState("");
   const [cm2LastSync, setCm2LastSync] = useState<Date | null>(null);
   const [sortKey, setSortKey] = useState<DashboardSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string) => {
-    saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString() });
+  const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string, nextTotalCm2 = totalCm2) => {
+    saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString(), totalCm2: nextTotalCm2 ?? undefined });
   };
 
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
@@ -142,6 +142,10 @@ export default function Home() {
       }
       setTotalCm2(payload.totalCm2);
       setCm2LastSync(payload.extractedAt ? new Date(payload.extractedAt) : new Date());
+      const savedSnapshot = loadDashboardSnapshot();
+      if (savedSnapshot) {
+        saveDashboardSnapshot({ ...savedSnapshot, totalCm2: payload.totalCm2 });
+      }
     } catch (error) {
       setCm2Error(error instanceof Error ? error.message : "Falha ao atualizar o total de cm².");
     } finally {
