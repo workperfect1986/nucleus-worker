@@ -58,6 +58,10 @@ function isClosedRow(row) {
   return /encerrado/i.test(`${row.label || ""} ${row.status || ""}`);
 }
 
+function normalizeOrderId(value) {
+  return String(value || "").replace(/^#/, "").trim();
+}
+
 async function extractSource(page, sourceUrl, filters, source) {
   const rows = [];
   const seen = new Set();
@@ -106,7 +110,7 @@ async function extractSource(page, sourceUrl, filters, source) {
       };
     }), source);
 
-    const selectedRows = source === "closed" ? pageRows.filter((row) => isClosedRow(row)) : pageRows.filter((row) => !isClosedRow(row));
+    const selectedRows = source === "orders" ? pageRows : pageRows.filter((row) => !isClosedRow(row));
     for (const row of selectedRows) {
       const key = `${row.id}:${row.work}`;
       if (!seen.has(key)) { seen.add(key); rows.push(row); }
@@ -118,7 +122,7 @@ async function extractSource(page, sourceUrl, filters, source) {
         const href = link.getAttribute("href");
         if (!href) return 0;
         const parsed = new URL(href, window.location.origin);
-        if (parsed.pathname !== (currentSource === "closed" ? "/ordem_servico" : "/fluxo_servicos")) return 0;
+        if (parsed.pathname !== (currentSource === "active" ? "/fluxo_servicos" : "/ordem_servico")) return 0;
         return Number(parsed.searchParams.get("page")) || 0;
       } catch { return 0; }
     }), source);
@@ -134,17 +138,45 @@ async function extract(credentials, filters = {}) {
   const page = await context.newPage();
   try {
     await login(page, credentials);
-    const [closedPage, activePage] = await Promise.all([context.newPage(), context.newPage()]);
-    const [closed, active] = await Promise.all([
-      extractSource(closedPage, ordersUrl, filters, "closed"),
+    const [ordersPage, activePage] = await Promise.all([context.newPage(), context.newPage()]);
+    const [ordersSource, active] = await Promise.all([
+      extractSource(ordersPage, ordersUrl, filters, "orders"),
       extractSource(activePage, activeUrl, filters, "active"),
     ]);
-    await Promise.all([closedPage.close(), activePage.close()]);
-    const rows = [...closed.rows, ...active.rows];
+    await Promise.all([ordersPage.close(), activePage.close()]);
+
+    const ordersById = new Map();
+    for (const row of ordersSource.rows) {
+      const id = normalizeOrderId(row.id);
+      if (id) ordersById.set(id, row);
+    }
+
+    const activeIds = new Set();
+    const reconciledActiveRows = active.rows.map((flowRow) => {
+      const id = normalizeOrderId(flowRow.id);
+      activeIds.add(id);
+      const orderRow = ordersById.get(id) || {};
+      return {
+        ...orderRow,
+        ...flowRow,
+        id: flowRow.id || orderRow.id,
+        client: flowRow.client || orderRow.client,
+        clientId: flowRow.clientId || orderRow.clientId,
+        name: flowRow.name || orderRow.name,
+        version: flowRow.version || orderRow.version,
+        order: flowRow.order || orderRow.order,
+      };
+    });
+
+    const closedRows = ordersSource.rows.filter((row) => isClosedRow(row));
+    const missingFromFlowRows = ordersSource.rows
+      .filter((row) => !isClosedRow(row) && !activeIds.has(normalizeOrderId(row.id)))
+      .map((row) => ({ ...row, status: row.status || "Não localizado no fluxo" }));
+    const rows = [...closedRows, ...reconciledActiveRows, ...missingFromFlowRows];
     return {
       rows,
-      pagesProcessed: closed.pagesProcessed + active.pagesProcessed,
-      totalPages: closed.totalPages + active.totalPages,
+      pagesProcessed: ordersSource.pagesProcessed + active.pagesProcessed,
+      totalPages: ordersSource.totalPages + active.totalPages,
       stagesProcessed: 0,
       stageErrors: 0,
     };
