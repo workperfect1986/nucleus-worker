@@ -79,13 +79,24 @@ async function extractSource(page, sourceUrl, filters, source) {
 
     const pageRows = await page.locator("table tbody tr").evaluateAll((elements, currentSource) => elements.map((row) => {
       const cells = Array.from(row.querySelectorAll("td")).map((cell) => cell.innerText.trim());
-      const companyHref = row.querySelector("td:nth-child(2) a")?.getAttribute("href") || "";
+      const companyHref = row.querySelector('a[href*="/crm/companies/"]')?.getAttribute("href") || "";
       const clientId = companyHref.match(/\/crm\/companies\/(\d+)/)?.[1];
       const stage = row.querySelector('[id^="etapa-atual-os-"]')?.textContent?.trim() || "";
       if (currentSource === "active") {
+        const normalizeHeader = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const headers = Array.from(row.closest("table")?.querySelectorAll("thead th") || []).map((cell) => normalizeHeader(cell.textContent || ""));
+        const column = (...names) => {
+          const index = headers.findIndex((header) => names.some((name) => header.includes(name)));
+          return index >= 0 ? cells[index] || "" : "";
+        };
         return {
-          id: cells[0], version: cells[1], order: cells[2], name: cells[3], client: cells[4],
-          status: stage || cells[5], clientId, label: row.innerText,
+          id: column("id os", "os") || cells[0],
+          version: column("versao") || cells[1],
+          order: column("pedido") || cells[2],
+          name: column("nome") || cells[3],
+          client: column("cliente") || cells[4],
+          status: stage || column("etapa", "status") || cells[5],
+          clientId, label: row.innerText,
         };
       }
       return {
