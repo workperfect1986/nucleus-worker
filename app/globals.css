@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --bg:#f3f6f7;
-  --sidebar:#ffffff;
-  --surface:#ffffff;
-  --surface-2:#f7f9fa;
-  --surface-3:#eef2f3;
-  --line:#d8e0e4;
-  --line-soft:#e7ecee;
-  --ink:#17242b;
-  --muted:#66747c;
-  --muted-2:#8b989f;
-  --accent:#67c8ad;
-  --accent-strong:#8ed9c5;
-  --blue:#78a9ff;
-  --green:#62c99b;
-  --amber:#dfa857;
-  --red:#df7a72;
+  --bg:#0b1014;
+  --sidebar:#0f161b;
+  --surface:#121a20;
+  --surface-2:#172128;
+  --surface-3:#1b262d;
+  --line:#26343d;
+  --line-soft:#1d2930;
+  --ink:#e8f0f2;
+  --muted:#8a9aa3;
+  --muted-2:#64757e;
+  --accent:#62d2b2;
+  --accent-strong:#91e4ca;
+  --blue:#78b5ff;
+  --green:#68d3a2;
+  --amber:#e4b363;
+  --red:#f0877d;
 }
 
 * { box-sizing:border-box; }
-html { color-scheme:light; }
+html { color-scheme:dark; }
 body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; -webkit-font-smoothing:antialiased; }
 button,input,select { font:inherit; }
 button { cursor:pointer; }
@@ -345,69 +345,21 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
   .report-filter-grid { grid-template-columns:1fr; }
 }
 
-/* Light theme surfaces */
-.auth-panel { background:#fbfcfc; }
-.auth-aside { background:#eef2f3; }
-.auth-aside:before { color:#c7d1d5; }
-.aside-grid { border-color:#d5dfe2; }
-.aside-grid:after { border-color:#dce5e7; }
-.auth-form input,.search-wrap input,.filters select,.date-filter input,.modal-date-grid input { background:#fff; color:var(--ink); border-color:#cbd6da; }
-.auth-form input::placeholder,.search-wrap input::placeholder { color:#9aa7ad; }
-.app-shell,.workspace,.topbar { background:var(--bg); }
-.sidebar { background:var(--sidebar); }
-.sidebar-brand strong,.user-row strong { color:#26353c; }
-.nav-item.active { color:#1e3038; background:#edf5f2; border-color:#d3e5df; }
-.nav-item.active span { color:#29947b; }
-.connection strong { color:#51616a; }
-.topbar { border-bottom-color:var(--line); }
-.breadcrumb strong { color:#52616a; }
-.topbar-report-button { background:#edf7f3; border-color:#b9ded1; color:#287d69; }
-.topbar-report-button:hover { background:#e1f1eb; border-color:#8ccbb8; }
-.stat-card,.orders-section,.report-card { background:var(--surface); }
-.stat-card > strong { color:#1b2b33; }
-.stat-label,.section-heading p { color:#74828a; }
-.production-card { box-shadow:inset 0 2px 0 var(--accent); }
-.section-heading,.table-footer { background:#fff; }
-.tabs button { color:#7b8990; }
-.tabs button.selected { color:#24343b; }
-.tabs span { background:#edf1f2; color:#718087; }
-.tabs button.selected span { background:#e4f2ed; color:#2b8d75; }
-.filters { background:#f7f9fa; }
-.table-wrap th { background:#f2f5f6; color:#748188; }
-.table-wrap td strong { color:#40515a; }
-.table-wrap tbody tr:hover td { background:#f4f8f7; }
-.type-pill { background:#eef2f3; border-color:#d6dfe2; color:#596971 !important; }
-.status-pill.progress { color:#4684bb !important; }
-.status-pill.waiting { color:#b27a20 !important; }
-.status-pill.closed { color:#278a68 !important; }
+/* Status colors are intentionally muted so long labels remain readable in dark mode. */
 .nucleus-status-development-recording,.nucleus-status-assembly-bl,.nucleus-status-development-bl,.nucleus-status-re-recording-bl,.nucleus-status-recording-bl,.nucleus-status-recording-simple-fast,.nucleus-status-complex-change,.nucleus-status-urgent-replacement { color:#fff !important; }
-.nucleus-status-development-recording { background:#f00000 !important; border-color:#f00000 !important; }
-.nucleus-status-assembly-bl { background:#7030a0 !important; border-color:#7030a0 !important; }
-.nucleus-status-development-bl { background:#00a6e8 !important; border-color:#00a6e8 !important; }
-.nucleus-status-re-recording-bl { background:#00b050 !important; border-color:#00b050 !important; }
-.nucleus-status-recording-bl { background:#ed7d31 !important; border-color:#ed7d31 !important; }
-.nucleus-status-assembly-be { background:#c9b3df !important; border-color:#c9b3df !important; color:#34464e !important; }
-.nucleus-status-development-be { background:#8fdcf5 !important; border-color:#8fdcf5 !important; color:#34464e !important; }
-.nucleus-status-re-recording-be { background:#70f2bc !important; border-color:#70f2bc !important; color:#245744 !important; }
-.nucleus-status-recording-fast { background:#ffe699 !important; border-color:#ffe699 !important; color:#5d521e !important; }
-.nucleus-status-recording-simple-fast { background:#808000 !important; border-color:#808000 !important; }
-.nucleus-status-jpg { background:#ffff00 !important; border-color:#ffff00 !important; color:#4b4b00 !important; }
-.nucleus-status-complex-change { background:#f000d9 !important; border-color:#f000d9 !important; }
-.nucleus-status-simple-change { background:#39ff14 !important; border-color:#39ff14 !important; color:#185d10 !important; }
-.nucleus-status-proof { background:#eeeeee !important; border-color:#d8d8d8 !important; color:#5c6265 !important; }
-.nucleus-status-urgent-replacement { background:#111111 !important; border-color:#111111 !important; }
-.nucleus-status-default { background:#edf1f2 !important; border-color:#d6dfe2 !important; color:#596971 !important; }
-.secondary-button,.filter-button { background:#fff; border-color:#cbd6da; color:#5c6c74; }
-.secondary-button:hover { background:#f0f5f4; border-color:#9fc7bb; color:#287d69; }
-.table-footer { border-top-color:var(--line); color:#78868d; }
-.table-footer strong { color:#4d5d65; }
-.report-filter-card,.report-summary-card { background:#f7f9fa; }
-.report-summary-item,.report-meta-item { background:#fff; border-color:#dfe6e8; }
-.report-summary-item strong { color:#21323a; }
-.report-summary-item span,.report-meta-item span { color:#718087; }
-.client-options { background:#fff; border-color:#cbd6da; }
-.client-option { color:#34464e !important; }
-.modal-backdrop { background:rgba(26,40,46,.38); }
-.date-modal,.sync-lock-card { background:#fff; border-color:#cbd6da; box-shadow:0 28px 80px rgba(41,58,64,.18); }
-.modal-close { background:#f1f4f5; color:#6e7d84; border-color:#cbd6da; }
-.sync-lock { background:rgba(235,241,242,.72); }
+.nucleus-status-development-recording { background:#a8444d !important; border-color:#c95a62 !important; }
+.nucleus-status-assembly-bl { background:#624b91 !important; border-color:#8165b5 !important; }
+.nucleus-status-development-bl { background:#176b91 !important; border-color:#258cb9 !important; }
+.nucleus-status-re-recording-bl { background:#247453 !important; border-color:#37976d !important; }
+.nucleus-status-recording-bl { background:#9b5b2d !important; border-color:#c77b3d !important; }
+.nucleus-status-assembly-be { background:#65567e !important; border-color:#8772a8 !important; }
+.nucleus-status-development-be { background:#286b7f !important; border-color:#3c91a9 !important; }
+.nucleus-status-re-recording-be { background:#27715d !important; border-color:#3a9a7d !important; }
+.nucleus-status-recording-fast { background:#806c32 !important; border-color:#ad9144 !important; }
+.nucleus-status-recording-simple-fast { background:#5d672b !important; border-color:#7f8b3a !important; }
+.nucleus-status-jpg { background:#827b25 !important; border-color:#aaa335 !important; }
+.nucleus-status-complex-change { background:#863b78 !important; border-color:#b454a0 !important; }
+.nucleus-status-simple-change { background:#367334 !important; border-color:#529e4d !important; }
+.nucleus-status-proof { background:#4e5961 !important; border-color:#77848d !important; }
+.nucleus-status-urgent-replacement { background:#303b43 !important; border-color:#52616b !important; }
+.nucleus-status-default { background:#202c33 !important; border-color:#3a4b55 !important; color:#b9c8ce !important; }
