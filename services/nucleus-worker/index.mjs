@@ -75,6 +75,7 @@ async function extractSource(page, sourceUrl, filters, source) {
     const filteredPageUrl = new URL(sourceUrl);
     filteredPageUrl.searchParams.set("page", String(pageNumber));
     if (filters.clientId) filteredPageUrl.searchParams.set("company_id", filters.clientId);
+    filteredPageUrl.searchParams.set("user_id", filters.userId || "");
     filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
     filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
     await page.goto(filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
@@ -186,20 +187,29 @@ async function extract(credentials, filters = {}) {
   }
 }
 
-async function extractClients(credentials) {
+async function extractFilterOptions(credentials) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
   try {
     await login(page, credentials);
-    await page.goto(ordersUrl, { waitUntil: "domcontentloaded" });
+    const filterOptionsUrl = new URL(ordersUrl);
+    filterOptionsUrl.searchParams.set("user_id", "");
+    await page.goto(filterOptionsUrl.toString(), { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during client extraction");
 
     const options = await page.locator('select[name="company_id"] option').evaluateAll((elements) => elements.map((option) => ({
       id: option.getAttribute("value")?.trim() || "",
       label: option.textContent?.trim() || "",
     })).filter((option) => option.id && option.label));
-    return Array.from(new Map(options.map((option) => [option.id, option])).values()).sort((left, right) => left.label.localeCompare(right.label, "pt-BR"));
+    const users = await page.locator('select[name="user_id"] option').evaluateAll((elements) => elements.map((option) => ({
+      id: option.getAttribute("value")?.trim() || "",
+      label: option.textContent?.trim() || "",
+    })).filter((option) => option.id && option.label));
+    return {
+      clients: Array.from(new Map(options.map((option) => [option.id, option])).values()).sort((left, right) => left.label.localeCompare(right.label, "pt-BR")),
+      users: Array.from(new Map(users.map((option) => [option.id, option])).values()).sort((left, right) => left.label.localeCompare(right.label, "pt-BR")),
+    };
   } finally {
     await context.close();
     await browser.close();
@@ -248,8 +258,8 @@ const server = http.createServer(async (request, response) => {
     try {
       const credentials = resolveCredentials({});
       if (!credentials.email || !credentials.password) throw new Error("Credentials are required");
-      const clients = await extractClients(credentials);
-      response.writeHead(200); response.end(JSON.stringify({ clients }));
+       const filterOptions = await extractFilterOptions(credentials);
+       response.writeHead(200); response.end(JSON.stringify(filterOptions));
     } catch (error) {
       response.writeHead(502); response.end(JSON.stringify({ error: error instanceof Error ? error.message : "Client extraction failed" }));
     }
