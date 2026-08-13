@@ -41,6 +41,7 @@ const formatSquareMeters = (squareCentimeters: number) => (squareCentimeters / 1
 const toDateInput = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const today = new Date();
 const PAGE_SIZE = 25;
+const INITIAL_USER_ID = "7012";
 const currentMonth = {
   from: toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)),
   to: toDateInput(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
@@ -201,7 +202,7 @@ export default function Home() {
     setLoginLoading(true);
     setLoginError("");
     try {
-      const payload = await extractOrders();
+      const payload = await extractOrders(dateFrom, dateTo, undefined, INITIAL_USER_ID);
       const nextOrders = normalizeWorkOrders(payload.orders ?? []);
       setOrders(nextOrders);
       setLastSync(new Date());
