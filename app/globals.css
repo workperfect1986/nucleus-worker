@@ -184,6 +184,13 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .row-more { border:0; background:transparent; color:#59656d; letter-spacing:2px; }
 .table-wrap table th:nth-child(3),.table-wrap table td:nth-child(3),.table-wrap table th:nth-child(4),.table-wrap table td:nth-child(4),.table-wrap table:has(.row-more) th:last-child,.table-wrap table:has(.row-more) td:last-child { display:none; }
 .table-wrap table th:first-child,.table-wrap table td:first-child { width:78px; }
+.table-wrap table th:nth-child(2),.table-wrap table td:nth-child(2) { width:38%; }
+.table-wrap table th:nth-child(5),.table-wrap table td:nth-child(5) { width:13%; }
+.table-wrap table th:nth-child(6),.table-wrap table td:nth-child(6) { width:16%; }
+.table-wrap table th:nth-child(7),.table-wrap table td:nth-child(7) { width:18%; }
+.table-wrap td:nth-child(2) { white-space:normal; }
+.table-wrap td:nth-child(5),.table-wrap td:nth-child(6),.table-wrap td:nth-child(7) { overflow:hidden; text-overflow:ellipsis; }
+.table-wrap td:nth-child(5) .type-pill,.table-wrap td:nth-child(7) .status-pill { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .empty-state { padding:54px; text-align:center; display:flex; flex-direction:column; gap:8px; color:#6e7a82; }
 .empty-state strong { color:#aeb8be; }
 .empty-state span { font-size:11px; }
