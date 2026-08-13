@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --bg:#0b1014;
-  --sidebar:#0f161b;
-  --surface:#121a20;
-  --surface-2:#172128;
-  --surface-3:#1b262d;
-  --line:#26343d;
-  --line-soft:#1d2930;
+  --bg:#11101a;
+  --sidebar:#151420;
+  --surface:#181722;
+  --surface-2:#201f2d;
+  --surface-3:#272638;
+  --line:#302e42;
+  --line-soft:#252438;
   --ink:#e8f0f2;
   --muted:#8a9aa3;
   --muted-2:#64757e;
-  --accent:#62d2b2;
-  --accent-strong:#91e4ca;
+  --accent:#73d6a7;
+  --accent-strong:#a0ebc5;
   --blue:#78b5ff;
   --green:#68d3a2;
   --amber:#e4b363;
@@ -88,8 +88,8 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .user-row strong { font-size:10px; color:#b9c1c6; }
 .user-row small { font-size:9px; color:#5f6a72; margin-top:3px; }
 .more { color:#4e5961; margin-left:auto; letter-spacing:2px; }
-.workspace { flex:1; min-width:0; background:#0f1317; }
-.topbar { height:66px; background:#0f1317; border-bottom:1px solid var(--line-soft); display:flex; align-items:center; justify-content:space-between; padding:0 clamp(24px,4vw,58px); }
+.workspace { flex:1; min-width:0; background:#11101a; }
+.topbar { height:66px; background:#11101a; border-bottom:1px solid var(--line-soft); display:flex; align-items:center; justify-content:space-between; padding:0 clamp(24px,4vw,58px); }
 .breadcrumb { display:flex; gap:11px; align-items:center; color:#59656d; font-size:10px; text-transform:uppercase; letter-spacing:.8px; }
 .breadcrumb b { color:#333d44; }
 .breadcrumb strong { color:#a2adb4; }
@@ -101,7 +101,7 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .top-avatar { width:29px; height:29px; font-size:10px; }
 
 /* Main content */
-.content { max-width:1480px; padding:42px clamp(24px,4vw,58px) 60px; margin:auto; }
+.content { width:100%; max-width:none; padding:42px clamp(24px,4vw,58px) 60px; margin:0; }
 .page-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-bottom:29px; }
 .page-heading h1 { font-size:32px; font-weight:620; letter-spacing:-1.4px; margin:11px 0 8px; }
 .page-heading p,.section-heading p { color:var(--muted); margin:0; }

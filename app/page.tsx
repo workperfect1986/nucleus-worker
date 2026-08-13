@@ -42,6 +42,7 @@ const toDateInput = (date: Date) => `${date.getFullYear()}-${String(date.getMont
 const today = new Date();
 const PAGE_SIZE = 25;
 const INITIAL_USER_ID = "7012";
+const SESSION_KEY = "studio-laser-dashboard-session";
 const currentMonth = {
   from: toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)),
   to: toDateInput(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
@@ -51,19 +52,22 @@ export const dynamic = "force-dynamic";
 
 export default function Home() {
   const initialSnapshot = useMemo(() => loadDashboardSnapshot(), []);
-  const [authenticated, setAuthenticated] = useState(false);
+  const navigation = typeof window !== "undefined" ? performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined : undefined;
+  const isReload = navigation?.type === "reload";
+  const hasActiveSession = !isReload && typeof window !== "undefined" && window.sessionStorage.getItem(SESSION_KEY) === "authenticated";
+  const [authenticated, setAuthenticated] = useState(hasActiveSession);
   const [email, setEmail] = useState(() => initialSnapshot?.email ?? "");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
-  const [orders, setOrders] = useState(() => normalizeWorkOrders([]));
+  const [orders, setOrders] = useState(() => hasActiveSession ? initialSnapshot?.orders ?? normalizeWorkOrders([]) : normalizeWorkOrders([]));
   const [tab, setTab] = useState<"active" | "closed">("active");
   const [query, setQuery] = useState("");
   const [client, setClient] = useState("Todos os clientes");
-  const [dateFrom, setDateFrom] = useState(currentMonth.from);
-  const [dateTo, setDateTo] = useState(currentMonth.to);
-  const [draftDateFrom, setDraftDateFrom] = useState(currentMonth.from);
-  const [draftDateTo, setDraftDateTo] = useState(currentMonth.to);
+  const [dateFrom, setDateFrom] = useState(hasActiveSession ? initialSnapshot?.dateFrom ?? currentMonth.from : currentMonth.from);
+  const [dateTo, setDateTo] = useState(hasActiveSession ? initialSnapshot?.dateTo ?? currentMonth.to : currentMonth.to);
+  const [draftDateFrom, setDraftDateFrom] = useState(hasActiveSession ? initialSnapshot?.dateFrom ?? currentMonth.from : currentMonth.from);
+  const [draftDateTo, setDraftDateTo] = useState(hasActiveSession ? initialSnapshot?.dateTo ?? currentMonth.to : currentMonth.to);
   const [draftClientId, setDraftClientId] = useState("");
   const [draftUserId, setDraftUserId] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -74,13 +78,13 @@ export default function Home() {
   const [technology, setTechnology] = useState("Todas as tecnologias");
   const [type, setType] = useState("Todos os tipos");
   const [refreshing, setRefreshing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(() => hasActiveSession && initialSnapshot?.lastSync ? new Date(initialSnapshot.lastSync) : null);
   const [notice, setNotice] = useState("");
   const [noticeError, setNoticeError] = useState(false);
-  const [totalCm2, setTotalCm2] = useState<number | null>(null);
+  const [totalCm2, setTotalCm2] = useState<number | null>(() => hasActiveSession && typeof initialSnapshot?.totalCm2 === "number" ? initialSnapshot.totalCm2 : null);
   const [cm2Loading, setCm2Loading] = useState(false);
   const [cm2Error, setCm2Error] = useState("");
-  const [cm2LastSync, setCm2LastSync] = useState<Date | null>(null);
+  const [cm2LastSync, setCm2LastSync] = useState<Date | null>(() => hasActiveSession && initialSnapshot?.totalCm2UpdatedAt ? new Date(initialSnapshot.totalCm2UpdatedAt) : null);
   const [sortKey, setSortKey] = useState<DashboardSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [pagination, setPagination] = useState({ key: "", page: 1 });
@@ -210,6 +214,7 @@ export default function Home() {
       setNotice(`Sincronização concluída: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
       setNoticeError(false);
       setAuthenticated(true);
+      window.sessionStorage.setItem(SESSION_KEY, "authenticated");
       void refreshProductionStats();
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Não foi possível entrar no Nucleus.");
@@ -270,6 +275,7 @@ export default function Home() {
 
   const logout = () => {
     setAuthenticated(false);
+    window.sessionStorage.removeItem(SESSION_KEY);
     setPassword("");
     setOrders(normalizeWorkOrders([]));
     setSelectedUserId("");

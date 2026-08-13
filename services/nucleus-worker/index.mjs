@@ -62,6 +62,40 @@ function normalizeOrderId(value) {
   return String(value || "").replace(/^#/, "").trim();
 }
 
+function htmlToText(value) {
+  return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
+}
+
+async function recoverFlowRows(context, rows, filters, knownFlowIds) {
+  const candidates = rows.filter((row) => !isClosedRow(row) && row.id && !knownFlowIds.has(normalizeOrderId(row.id)));
+  const recovered = [];
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(6, candidates.length) }, async () => {
+    while (nextIndex < candidates.length) {
+      const row = candidates[nextIndex];
+      nextIndex += 1;
+      try {
+        const flowUrl = new URL(activeUrl);
+        flowUrl.searchParams.set("os_id", normalizeOrderId(row.id));
+        flowUrl.searchParams.set("user_id", filters.userId || "");
+        flowUrl.searchParams.set("date_de", formatQueryDate(filters.dateFrom || getCurrentMonthRange().from));
+        flowUrl.searchParams.set("date_ate", formatQueryDate(filters.dateTo || getCurrentMonthRange().to));
+        if (filters.clientId) flowUrl.searchParams.set("company_id", filters.clientId);
+        const response = await context.request.get(flowUrl.toString(), { timeout: 20_000, failOnStatusCode: false });
+        if (!response.ok()) continue;
+        const html = await response.text();
+        const stageCell = html.match(/<td\b[^>]*\bid=["']etapa-atual-os-[^"']+["'][^>]*>([\s\S]*?)<\/td>/i)?.[1] || "";
+        const stage = htmlToText(stageCell);
+        if (stage) recovered.push({ ...row, status: stage });
+      } catch {
+        // A missing lookup must not interrupt the main extraction.
+      }
+    }
+  });
+  await Promise.all(workers);
+  return recovered;
+}
+
 async function extractSource(page, sourceUrl, filters, source) {
   const rows = [];
   const seen = new Set();
@@ -145,6 +179,9 @@ async function extract(credentials, filters = {}) {
       extractSource(activePage, activeUrl, filters, "active"),
     ]);
     await Promise.all([ordersPage.close(), activePage.close()]);
+    const knownFlowIds = new Set(active.rows.map((row) => normalizeOrderId(row.id)));
+    const recoveredFlowRows = await recoverFlowRows(context, ordersSource.rows, filters, knownFlowIds);
+    const flowRows = [...active.rows, ...recoveredFlowRows];
 
     const ordersById = new Map();
     for (const row of ordersSource.rows) {
@@ -153,7 +190,7 @@ async function extract(credentials, filters = {}) {
     }
 
     const activeIds = new Set();
-    const reconciledActiveRows = active.rows.map((flowRow) => {
+    const reconciledActiveRows = flowRows.map((flowRow) => {
       const id = normalizeOrderId(flowRow.id);
       activeIds.add(id);
       const orderRow = ordersById.get(id) || {};
