@@ -82,10 +82,16 @@ async function extractSource(page, sourceUrl, filters, source) {
       const companyHref = row.querySelector("td:nth-child(2) a")?.getAttribute("href") || "";
       const clientId = companyHref.match(/\/crm\/companies\/(\d+)/)?.[1];
       const stage = row.querySelector('[id^="etapa-atual-os-"]')?.textContent?.trim() || "";
+      if (currentSource === "active") {
+        return {
+          id: cells[0], version: cells[1], order: cells[2], name: cells[3], client: cells[4],
+          status: stage || cells[5], clientId, label: row.innerText,
+        };
+      }
       return {
         id: cells[0], clientId, client: cells[1], name: cells[2], version: cells[3], order: cells[4],
         technology: cells[5], thickness: cells[6], type: cells[7], createdAt: cells[8], work: cells[9],
-        status: stage || (currentSource === "active" ? cells[10] : ""), label: row.innerText,
+        status: "", label: row.innerText,
       };
     }), source);
 
