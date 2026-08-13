@@ -312,14 +312,11 @@ export default function ReportPageClient() {
       </div>
       <div className="print-report-table-wrap">
         <table>
-          <thead><tr><th>Ordem</th><th>Cliente / nome</th><th>Trabalho</th><th>Tecnologia</th><th>Tipo</th><th>Criado em</th><th>Status</th></tr></thead>
+          <thead><tr><th>Ordem</th><th>Cliente / nome</th><th>Trabalho</th><th>Status</th></tr></thead>
           <tbody>{filteredOrders.map((order) => <tr key={`print-${order.id}-${order.work}`}>
             <td><strong>#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td>
             <td><strong>{order.client}</strong><small>{order.name}</small></td>
             <td><strong>{order.work}</strong></td>
-            <td>{order.technology}<small>{order.thickness} mm</small></td>
-            <td>{order.type}</td>
-            <td>{order.createdAt.split(" às ")[0]}<small>{order.createdAt.split(" às ")[1]}</small></td>
             <td><span className={`print-status nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}>{order.isClosed ? "Encerrado" : order.status}</span></td>
           </tr>)}</tbody>
         </table>
