@@ -62,15 +62,12 @@ function normalizeOrderId(value) {
   return String(value || "").replace(/^#/, "").trim();
 }
 
-function htmlToText(value) {
-  return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
-}
-
 async function recoverFlowRows(context, rows, filters, knownFlowIds) {
   const candidates = rows.filter((row) => !isClosedRow(row) && row.id && !knownFlowIds.has(normalizeOrderId(row.id)));
   const recovered = [];
   let nextIndex = 0;
-  const workers = Array.from({ length: Math.min(6, candidates.length) }, async () => {
+  const pages = await Promise.all(Array.from({ length: Math.min(6, candidates.length) }, () => context.newPage()));
+  const workers = pages.map(async (page) => {
     while (nextIndex < candidates.length) {
       const row = candidates[nextIndex];
       nextIndex += 1;
@@ -81,11 +78,10 @@ async function recoverFlowRows(context, rows, filters, knownFlowIds) {
         flowUrl.searchParams.set("date_de", formatQueryDate(filters.dateFrom || getCurrentMonthRange().from));
         flowUrl.searchParams.set("date_ate", formatQueryDate(filters.dateTo || getCurrentMonthRange().to));
         if (filters.clientId) flowUrl.searchParams.set("company_id", filters.clientId);
-        const response = await context.request.get(flowUrl.toString(), { timeout: 20_000, failOnStatusCode: false });
-        if (!response.ok()) continue;
-        const html = await response.text();
-        const stageCell = html.match(/<td\b[^>]*\bid=["']etapa-atual-os-[^"']+["'][^>]*>([\s\S]*?)<\/td>/i)?.[1] || "";
-        const stage = htmlToText(stageCell);
+        await page.goto(flowUrl.toString(), { waitUntil: "domcontentloaded", timeout: 20_000 });
+        if (page.url().includes("/login")) continue;
+        const stageCell = page.locator('td[id^="etapa-atual-os-"]').first();
+        const stage = (await stageCell.innerText({ timeout: 10_000 }).catch(() => "")).trim();
         if (stage) recovered.push({ ...row, status: stage });
       } catch {
         // A missing lookup must not interrupt the main extraction.
@@ -93,6 +89,7 @@ async function recoverFlowRows(context, rows, filters, knownFlowIds) {
     }
   });
   await Promise.all(workers);
+  await Promise.all(pages.map((page) => page.close()));
   return recovered;
 }
 
