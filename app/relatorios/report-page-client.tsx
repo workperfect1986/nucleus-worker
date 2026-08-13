@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { loadDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
 import type { WorkOrder } from "../../lib/nucleus/normalize";
 import { getNucleusStatusTone } from "../../lib/nucleus/status";
 
 const formatDate = (value: string) => value.split("-").reverse().join("/");
+const PAGE_SIZE = 25;
 
 type ReportStatusFilter = "all" | "active" | "closed";
 type ReportSortKey = "id" | "client" | "work" | "technology" | "type" | "createdAt" | "status";
@@ -29,6 +30,7 @@ export default function ReportPageClient() {
   const [statusMessage, setStatusMessage] = useState("");
   const [sortKey, setSortKey] = useState<ReportSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const clients = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.client) ?? [])).sort(), [snapshot]);
   const workTypes = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.type) ?? [])).sort(), [snapshot]);
@@ -43,7 +45,7 @@ export default function ReportPageClient() {
   };
 
   const sortIndicator = (key: ReportSortKey) => sortKey === key ? (sortDirection === "asc" ? "↑" : "↓") : "↕";
-  const filteredOrders = useMemo(() => {
+  const allFilteredOrders = useMemo(() => {
     if (!snapshot) {
       return [] as WorkOrder[];
     }
@@ -67,6 +69,16 @@ export default function ReportPageClient() {
       return sortDirection === "asc" ? comparison : -comparison;
     });
   }, [selectedClients, snapshot, sortDirection, sortKey, statusFilter, typeFilter]);
+  const totalPages = Math.max(1, Math.ceil(allFilteredOrders.length / PAGE_SIZE));
+  const filteredOrders = allFilteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClients, snapshot, sortDirection, sortKey, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const clientLabel = selectedClients.length === 0
     ? "Todos os clientes"
@@ -80,8 +92,8 @@ export default function ReportPageClient() {
       : [...current, client]);
   };
 
-  const activeCount = filteredOrders.filter((order) => !order.isClosed).length;
-  const closedCount = filteredOrders.filter((order) => order.isClosed).length;
+  const activeCount = allFilteredOrders.filter((order) => !order.isClosed).length;
+  const closedCount = allFilteredOrders.filter((order) => order.isClosed).length;
   const goToDashboard = () => window.location.assign("/");
 
   const handleGeneratePdf = async () => {
@@ -268,7 +280,7 @@ export default function ReportPageClient() {
               <div className="tabs" role="tablist"><button className={statusFilter === "all" ? "selected" : ""} onClick={() => setStatusFilter("all")} role="tab" aria-selected={statusFilter === "all"}>Todos <span>{snapshot?.orders.length ?? 0}</span></button><button className={statusFilter === "active" ? "selected" : ""} onClick={() => setStatusFilter("active")} role="tab" aria-selected={statusFilter === "active"}>Em andamento <span>{activeCount}</span></button><button className={statusFilter === "closed" ? "selected" : ""} onClick={() => setStatusFilter("closed")} role="tab" aria-selected={statusFilter === "closed"}>Encerrados <span>{closedCount}</span></button></div>
               <div className="filters report-filters"><div className="client-selector"><span>Clientes</span><div className="client-options"><label className="client-option"><input type="checkbox" checked={selectedClients.length === 0} onChange={() => setSelectedClients([])} /> Todos os clientes</label>{clients.map((client) => <label className="client-option" key={client}><input type="checkbox" checked={selectedClients.includes(client)} onChange={() => toggleClient(client)} /> {client}</label>)}</div></div><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtrar tipo de trabalho"><option value="Todos os tipos">Todos os tipos</option>{workTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select><button className="primary-button report-generate-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}>{isGenerating ? "Gerando..." : "Gerar PDF"}</button></div>
               <div className="table-wrap"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("work")}>Trabalho <span>{sortIndicator("work")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("technology")}>Tecnologia <span>{sortIndicator("technology")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("type")}>Tipo <span>{sortIndicator("type")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th></tr></thead><tbody>{filteredOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td></tr>)}</tbody></table>{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
-              <div className="table-footer"><span>Mostrando <strong>{filteredOrders.length}</strong> ordens de <strong>{snapshot?.orders.length ?? 0}</strong></span>{statusMessage ? <span className="report-status-message">{statusMessage}</span> : null}</div>
+               <div className="table-footer"><span>Mostrando <strong>{filteredOrders.length}</strong> de <strong>{allFilteredOrders.length}</strong> ordens</span><div className="pagination" aria-label="Paginação do relatório"><button type="button" onClick={() => setCurrentPage((page) => page - 1)} disabled={currentPage === 1} aria-label="Página anterior">‹</button>{Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => <button type="button" key={page} className={page === currentPage ? "current" : ""} onClick={() => setCurrentPage(page)} aria-label={`Página ${page}`} aria-current={page === currentPage ? "page" : undefined}>{page}</button>)}<button type="button" onClick={() => setCurrentPage((page) => page + 1)} disabled={currentPage === totalPages} aria-label="Próxima página">›</button></div>{statusMessage ? <span className="report-status-message">{statusMessage}</span> : null}</div>
             </section>
           </div>
         </section>
