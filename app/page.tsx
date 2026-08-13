@@ -106,8 +106,8 @@ export default function Home() {
     return matchesTab && haystack.includes(query.toLowerCase()) &&
       (client === "Todos os clientes" || order.client === client) &&
       (tab === "active" || ((!dateFrom || orderDate >= dateFrom) && (!dateTo || orderDate <= dateTo))) &&
-      (technology === "Todas as tecnologias" || order.technology === technology) &&
-      (type === "Todos os tipos" || order.type === type);
+      (tab === "active" || (technology === "Todas as tecnologias" || order.technology === technology)) &&
+      (tab === "active" || (type === "Todos os tipos" || order.type === type));
   }).sort((left, right) => {
     const leftValue = getDashboardSortValue(left, sortKey);
     const rightValue = getDashboardSortValue(right, sortKey);
@@ -219,6 +219,11 @@ export default function Home() {
       setOrders(nextOrders);
       setDateFrom(requestDateFrom);
       setDateTo(requestDateTo);
+      setClient(requestClientId
+        ? availableClients.find((option) => option.id === requestClientId)?.label
+          ?? nextOrders.find((order) => order.clientId === requestClientId)?.client
+          ?? "Todos os clientes"
+        : "Todos os clientes");
       setLastSync(new Date());
       persistDashboardSnapshot(nextOrders, requestDateFrom, requestDateTo, email);
       setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
