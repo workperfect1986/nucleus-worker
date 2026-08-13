@@ -402,7 +402,7 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 }
 
 /* Status colors are intentionally muted so long labels remain readable in dark mode. */
-.nucleus-status-development-recording,.nucleus-status-assembly-bl,.nucleus-status-development-bl,.nucleus-status-re-recording-bl,.nucleus-status-recording-bl,.nucleus-status-recording-simple-fast,.nucleus-status-complex-change,.nucleus-status-urgent-replacement { color:#fff !important; }
+.nucleus-status-development-recording,.nucleus-status-assembly-bl,.nucleus-status-development-bl,.nucleus-status-re-recording-bl,.nucleus-status-recording-bl,.nucleus-status-assembly-be,.nucleus-status-development-be,.nucleus-status-re-recording-be,.nucleus-status-recording-fast,.nucleus-status-recording-simple-fast,.nucleus-status-jpg,.nucleus-status-complex-change,.nucleus-status-simple-change,.nucleus-status-proof,.nucleus-status-urgent-replacement { color:#edf7f5 !important; }
 .nucleus-status-development-recording { background:#a8444d !important; border-color:#c95a62 !important; }
 .nucleus-status-assembly-bl { background:#624b91 !important; border-color:#8165b5 !important; }
 .nucleus-status-development-bl { background:#176b91 !important; border-color:#258cb9 !important; }
