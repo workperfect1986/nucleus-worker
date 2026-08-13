@@ -105,7 +105,7 @@ export default function Home() {
     const orderDate = order.createdAt.split(" às ")[0].split("/").reverse().join("-");
     return matchesTab && haystack.includes(query.toLowerCase()) &&
       (client === "Todos os clientes" || order.client === client) &&
-      (tab === "active" || ((!dateFrom || orderDate >= dateFrom) && (!dateTo || orderDate <= dateTo))) &&
+      (!dateFrom || orderDate >= dateFrom) && (!dateTo || orderDate <= dateTo) &&
       (technology === "Todas as tecnologias" || order.technology === technology) &&
       (type === "Todos os tipos" || order.type === type);
   }).sort((left, right) => {

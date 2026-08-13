@@ -71,10 +71,8 @@ async function extractSource(page, sourceUrl, filters, source) {
     const filteredPageUrl = new URL(sourceUrl);
     filteredPageUrl.searchParams.set("page", String(pageNumber));
     if (filters.clientId) filteredPageUrl.searchParams.set("company_id", filters.clientId);
-    if (source === "closed") {
-      filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
-      filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
-    }
+    filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
+    filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
     await page.goto(filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during extraction");
     pagesProcessed += 1;
