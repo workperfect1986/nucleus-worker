@@ -59,11 +59,10 @@ Variáveis:
 ```env
 PORT=8787
 NUCLEUS_MAX_PAGES=10000
-NUCLEUS_STAGE_CONCURRENCY=6
 RAILWAY_SHM_SIZE_BYTES=536870912
 ```
 
-As URLs do Nucleus já possuem valores seguros como padrão. Só defina `NUCLEUS_URL`, `NUCLEUS_ORDERS_URL` ou `NUCLEUS_PRODUCTION_URL` se precisar substituí-las.
+As URLs do Nucleus já possuem valores seguros como padrão. Só defina `NUCLEUS_URL`, `NUCLEUS_ORDERS_URL`, `NUCLEUS_ACTIVE_URL` ou `NUCLEUS_PRODUCTION_URL` se precisar substituí-las.
 
 ### 3. Crie o serviço público `dashboard`
 
@@ -93,9 +92,9 @@ Depois do deploy, abra **Settings → Networking → Generate Domain** somente n
 | `NUCLEUS_WORKER_INTERNAL_URL` | dashboard | `http://localhost:8787` | Endereço privado do worker |
 | `PORT` | nucleus-worker | `8787` | Porta HTTP privada |
 | `NUCLEUS_MAX_PAGES` | nucleus-worker | `10000` | Limite de páginas de ordens |
-| `NUCLEUS_STAGE_CONCURRENCY` | nucleus-worker | `6` | Requisições simultâneas de etapas |
 | `NUCLEUS_URL` | nucleus-worker | URL Studio Laser | Host do Nucleus |
-| `NUCLEUS_ORDERS_URL` | nucleus-worker | URL filtrada no código | Base da extração de ordens |
+| `NUCLEUS_ORDERS_URL` | nucleus-worker | URL filtrada no código | Fonte das ordens encerradas |
+| `NUCLEUS_ACTIVE_URL` | nucleus-worker | URL filtrada no código | Fonte das ordens em andamento |
 | `NUCLEUS_PRODUCTION_URL` | nucleus-worker | `/dashboard/production` | Fonte do total de produção |
 
 ## Segurança

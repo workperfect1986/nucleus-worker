@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { loadDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
 import type { WorkOrder } from "../../lib/nucleus/normalize";
@@ -30,7 +30,7 @@ export default function ReportPageClient() {
   const [statusMessage, setStatusMessage] = useState("");
   const [sortKey, setSortKey] = useState<ReportSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ key: "", page: 1 });
 
   const clients = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.client) ?? [])).sort(), [snapshot]);
   const workTypes = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.type) ?? [])).sort(), [snapshot]);
@@ -70,15 +70,15 @@ export default function ReportPageClient() {
     });
   }, [selectedClients, snapshot, sortDirection, sortKey, statusFilter, typeFilter]);
   const totalPages = Math.max(1, Math.ceil(allFilteredOrders.length / PAGE_SIZE));
+  const pageKey = `${JSON.stringify(selectedClients)}|${snapshot ? "loaded" : "empty"}|${sortDirection}|${sortKey}|${statusFilter}|${typeFilter}`;
+  const currentPage = pagination.key === pageKey ? Math.min(pagination.page, totalPages) : 1;
+  const setCurrentPage = (nextPage: number | ((page: number) => number)) => {
+    setPagination((current) => {
+      const page = current.key === pageKey ? current.page : 1;
+      return { key: pageKey, page: typeof nextPage === "function" ? nextPage(page) : nextPage };
+    });
+  };
   const filteredOrders = allFilteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedClients, snapshot, sortDirection, sortKey, statusFilter, typeFilter]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
 
   const clientLabel = selectedClients.length === 0
     ? "Todos os clientes"
@@ -100,6 +100,7 @@ export default function ReportPageClient() {
     if (!snapshot) {
       return;
     }
+    const reportSnapshot = snapshot;
 
     setIsGenerating(true);
     setStatusMessage("Abrindo a visualização de impressão...");
@@ -140,7 +141,7 @@ export default function ReportPageClient() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.setTextColor(178, 191, 199);
-        doc.text(`Período da importação: ${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)}`, margin + 18, 72);
+        doc.text(`Período da importação: ${formatDate(reportSnapshot.dateFrom)} — ${formatDate(reportSnapshot.dateTo)}`, margin + 18, 72);
         doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, pageWidth - margin - 160, 72);
 
         doc.setFont("helvetica", "bold");
@@ -175,7 +176,7 @@ export default function ReportPageClient() {
       ];
 
       const drawTableRow = (row: WorkOrder, index: number, y: number) => {
-        const rowColor = index % 2 === 0 ? [17, 24, 31] : [12, 18, 24];
+        const rowColor: [number, number, number] = index % 2 === 0 ? [17, 24, 31] : [12, 18, 24];
         doc.setFillColor(...rowColor);
         doc.roundedRect(margin, y, innerWidth, rowHeight, 4, 4, "F");
 
@@ -249,7 +250,11 @@ export default function ReportPageClient() {
       doc.save(fileName);
       setStatusMessage(`PDF gerado com ${filteredOrders.length} ordem(s) usando os filtros selecionados.`);
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Não foi possível gerar o PDF.");
+      const errorRecord = error as { message?: unknown };
+      const message: string = typeof errorRecord.message === "string"
+        ? String(errorRecord.message)
+        : "Não foi possível gerar o PDF.";
+      setStatusMessage(message);
     } finally {
       setIsGenerating(false);
     }

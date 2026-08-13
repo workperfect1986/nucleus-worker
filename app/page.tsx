@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { clearDashboardSnapshot, loadDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
 import { normalizeWorkOrders, type RawWorkOrder, type WorkOrder } from "../lib/nucleus/normalize";
 import { getNucleusStatusTone } from "../lib/nucleus/status";
@@ -78,7 +78,7 @@ export default function Home() {
   const [cm2LastSync, setCm2LastSync] = useState<Date | null>(() => initialSnapshot?.totalCm2UpdatedAt ? new Date(initialSnapshot.totalCm2UpdatedAt) : null);
   const [sortKey, setSortKey] = useState<DashboardSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ key: "", page: 1 });
 
   const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string, nextTotalCm2 = totalCm2) => {
     saveDashboardSnapshot({ orders: nextOrders, dateFrom: nextDateFrom, dateTo: nextDateTo, email: nextEmail, lastSync: new Date().toISOString(), totalCm2: nextTotalCm2 ?? undefined, totalCm2UpdatedAt: cm2LastSync?.toISOString() });
@@ -117,15 +117,15 @@ export default function Home() {
     return sortDirection === "asc" ? comparison : -comparison;
   }), [client, dateFrom, dateTo, orders, query, sortDirection, sortKey, tab, technology, type]);
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const pageKey = `${client}|${dateFrom}|${dateTo}|${query}|${sortDirection}|${sortKey}|${tab}|${technology}|${type}|${orders.length}`;
+  const currentPage = pagination.key === pageKey ? Math.min(pagination.page, totalPages) : 1;
+  const setCurrentPage = (nextPage: number | ((page: number) => number)) => {
+    setPagination((current) => {
+      const page = current.key === pageKey ? current.page : 1;
+      return { key: pageKey, page: typeof nextPage === "function" ? nextPage(page) : nextPage };
+    });
+  };
   const visibleOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [client, dateFrom, dateTo, orders, query, sortDirection, sortKey, tab, technology, type]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
 
   async function extractOrders(requestDateFrom = dateFrom, requestDateTo = dateTo, requestClientId?: string) {
     const clientId = requestClientId !== undefined ? requestClientId : orders.find((order) => order.client === client)?.clientId;
