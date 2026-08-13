@@ -74,14 +74,23 @@ async function recoverFlowRows(context, rows, filters, knownFlowIds) {
       try {
         const flowUrl = new URL(activeUrl);
         flowUrl.searchParams.set("os_id", normalizeOrderId(row.id));
-        flowUrl.searchParams.set("user_id", filters.userId || "");
-        flowUrl.searchParams.set("date_de", formatQueryDate(filters.dateFrom || getCurrentMonthRange().from));
-        flowUrl.searchParams.set("date_ate", formatQueryDate(filters.dateTo || getCurrentMonthRange().to));
-        if (filters.clientId) flowUrl.searchParams.set("company_id", filters.clientId);
+        flowUrl.searchParams.set("user_id", "");
+        flowUrl.searchParams.set("company_id", "");
+        flowUrl.searchParams.set("date_de", "");
+        flowUrl.searchParams.set("date_ate", "");
+        flowUrl.searchParams.set("minhas_ordens_servico", "");
         await page.goto(flowUrl.toString(), { waitUntil: "domcontentloaded", timeout: 20_000 });
         if (page.url().includes("/login")) continue;
         const stageCell = page.locator('td[id^="etapa-atual-os-"]').first();
-        const stage = (await stageCell.innerText({ timeout: 10_000 }).catch(() => "")).trim();
+        let stage = (await stageCell.innerText({ timeout: 10_000 }).catch(() => "")).trim();
+        if (!stage) {
+          stage = await page.locator("table tbody tr").first().evaluate((tableRow) => {
+            const table = tableRow.closest("table");
+            const headers = Array.from(table?.querySelectorAll("thead th") || []).map((cell) => cell.textContent?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() || "");
+            const stageIndex = headers.findIndex((header) => header.includes("etapa") || header.includes("status"));
+            return stageIndex >= 0 ? tableRow.querySelectorAll("td")[stageIndex]?.textContent?.trim() || "" : "";
+          }).catch(() => "");
+        }
         if (stage) recovered.push({ ...row, status: stage });
       } catch {
         // A missing lookup must not interrupt the main extraction.
