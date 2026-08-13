@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { jsPDF } from "jspdf";
-import { loadDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
+import { loadDashboardSnapshot, subscribeDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
 import type { WorkOrder } from "../../lib/nucleus/normalize";
 import { getNucleusStatusTone } from "../../lib/nucleus/status";
 
@@ -21,8 +21,7 @@ const getReportSortValue = (order: WorkOrder, key: ReportSortKey) => {
 };
 
 export default function ReportPageClient() {
-  const initialSnapshot = useMemo(() => loadDashboardSnapshot(), []);
-  const [snapshot] = useState<DashboardSnapshot | null>(initialSnapshot);
+  const snapshot = useSyncExternalStore(subscribeDashboardSnapshot, loadDashboardSnapshot, () => null) as DashboardSnapshot | null;
   const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>("all");
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState("Todos os tipos");
