@@ -179,12 +179,25 @@ async function extract(credentials, filters = {}) {
   const page = await context.newPage();
   try {
     await login(page, credentials);
-    const [ordersPage, activePage] = await Promise.all([context.newPage(), context.newPage()]);
-    const [ordersSource, active] = await Promise.all([
-      extractSource(ordersPage, ordersUrl, filters, "orders"),
-      extractSource(activePage, activeUrl, filters, "active"),
+    const source = filters.source || "all";
+    const shouldExtractOrders = source !== "active";
+    const shouldExtractActive = source !== "closed";
+    const [ordersPage, activePage] = await Promise.all([
+      shouldExtractOrders ? context.newPage() : Promise.resolve(null),
+      shouldExtractActive ? context.newPage() : Promise.resolve(null),
     ]);
-    await Promise.all([ordersPage.close(), activePage.close()]);
+    const [ordersSource, active] = await Promise.all([
+      ordersPage ? extractSource(ordersPage, ordersUrl, filters, "orders") : Promise.resolve({ rows: [], pagesProcessed: 0, totalPages: 0 }),
+      activePage ? extractSource(activePage, activeUrl, filters, "active") : Promise.resolve({ rows: [], pagesProcessed: 0, totalPages: 0 }),
+    ]);
+    await Promise.all([ordersPage?.close(), activePage?.close()]);
+    if (source === "closed") {
+      const rows = ordersSource.rows.filter((row) => isClosedRow(row));
+      return { rows, pagesProcessed: ordersSource.pagesProcessed, totalPages: ordersSource.totalPages, stagesProcessed: 0, stageErrors: 0 };
+    }
+    if (source === "active") {
+      return { rows: active.rows, pagesProcessed: active.pagesProcessed, totalPages: active.totalPages, stagesProcessed: 0, stageErrors: 0 };
+    }
     const knownFlowIds = new Set(active.rows.map((row) => normalizeOrderId(row.id)));
     const recoveredFlowRows = await recoverFlowRows(context, ordersSource.rows, filters, knownFlowIds);
     const flowRows = [...active.rows, ...recoveredFlowRows];
