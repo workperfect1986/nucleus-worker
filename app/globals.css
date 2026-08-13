@@ -416,6 +416,6 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .nucleus-status-jpg { background:#827b25 !important; border-color:#aaa335 !important; }
 .nucleus-status-complex-change { background:#863b78 !important; border-color:#b454a0 !important; }
 .nucleus-status-simple-change { background:#367334 !important; border-color:#529e4d !important; }
-.nucleus-status-proof { background:#4e5961 !important; border-color:#77848d !important; }
+.nucleus-status-proof { background:#2d4168 !important; border-color:#5e83be !important; color:#c5dcff !important; }
 .nucleus-status-urgent-replacement { background:#303b43 !important; border-color:#52616b !important; }
 .nucleus-status-default { background:#202c33 !important; border-color:#3a4b55 !important; color:#b9c8ce !important; }
