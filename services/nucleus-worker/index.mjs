@@ -47,7 +47,7 @@ function getCurrentMonthRange() {
 }
 
 async function login(page, credentials) {
-  await page.goto(`${target}/login`, { waitUntil: "domcontentloaded" });
+  await gotoWithRetry(page, `${target}/login`, { waitUntil: "domcontentloaded" });
   const fields = page.getByRole("textbox");
   await fields.nth(0).fill(credentials.email);
   await fields.nth(1).fill(credentials.password);
@@ -63,6 +63,21 @@ function isClosedRow(row) {
 
 function normalizeOrderId(value) {
   return String(value || "").replace(/^#/, "").trim();
+}
+
+function isRetryableNavigationError(error) {
+  return /ERR_ABORTED|frame was detached|NS_BINDING_ABORTED/i.test(error instanceof Error ? error.message : String(error));
+}
+
+async function gotoWithRetry(page, url, options = {}) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await page.goto(url, options);
+    } catch (error) {
+      if (!isRetryableNavigationError(error) || attempt === 3 || page.isClosed()) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+  }
 }
 
 async function recoverFlowRows(context, rows, filters) {
@@ -83,7 +98,7 @@ async function recoverFlowRows(context, rows, filters) {
         flowUrl.searchParams.set("company_id", "");
         flowUrl.searchParams.set("date_de", "");
         flowUrl.searchParams.set("date_ate", "");
-        await page.goto(flowUrl.toString(), { waitUntil: "domcontentloaded", timeout: 20_000 });
+        await gotoWithRetry(page, flowUrl.toString(), { waitUntil: "domcontentloaded", timeout: 20_000 });
         if (page.url().includes("/login")) continue;
         const stageCell = page.locator('td[id^="etapa-atual-os-"]').first();
         let stage = (await stageCell.innerText({ timeout: 10_000 }).catch(() => "")).trim();
@@ -124,7 +139,7 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
     if (filters.userId) filteredPageUrl.searchParams.set("user_id", filters.userId);
     filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
     filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
-    await page.goto(filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
+    await gotoWithRetry(page, filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during extraction");
     pagesProcessed += 1;
 
@@ -242,7 +257,7 @@ async function extractFilterOptions(credentials) {
     await login(page, credentials);
     const filterOptionsUrl = new URL(ordersUrl);
     filterOptionsUrl.searchParams.set("user_id", "");
-    await page.goto(filterOptionsUrl.toString(), { waitUntil: "domcontentloaded" });
+    await gotoWithRetry(page, filterOptionsUrl.toString(), { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during client extraction");
 
     const options = await page.locator('select[name="company_id"] option').evaluateAll((elements) => elements.map((option) => ({
@@ -269,7 +284,7 @@ async function extractProductionStats(credentials) {
   const page = await context.newPage();
   try {
     await login(page, credentials);
-    await page.goto(productionUrl, { waitUntil: "domcontentloaded" });
+    await gotoWithRetry(page, productionUrl, { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during extraction");
 
     const metricLabel = page.getByText("Total cm2 do usuário", { exact: true });
