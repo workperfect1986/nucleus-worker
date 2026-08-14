@@ -8,13 +8,13 @@ COPY services/nucleus-worker/package.json services/nucleus-worker/pnpm-lock.yaml
 RUN NODE_ENV=development pnpm install --frozen-lockfile --prod=false \
     && test -f node_modules/vinext/dist/cli.js \
     && test -f node_modules/playwright/package.json
-RUN cd services/nucleus-worker && pnpm install --frozen-lockfile --prod
+RUN cd services/nucleus-worker && pnpm install --ignore-workspace --frozen-lockfile --prod
 
 COPY . .
 ENV NODE_ENV=production
 RUN pnpm install --frozen-lockfile --prod=false \
     && cd services/nucleus-worker \
-    && pnpm install --frozen-lockfile --prod \
+    && pnpm install --ignore-workspace --frozen-lockfile --prod \
     && test -f node_modules/cheerio/package.json \
     && cd /app \
     && test -f node_modules/vinext/dist/cli.js \
