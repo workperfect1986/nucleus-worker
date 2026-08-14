@@ -69,10 +69,7 @@ export default function Home() {
   const [draftDateFrom, setDraftDateFrom] = useState(hasActiveSession ? initialSnapshot?.dateFrom ?? currentMonth.from : currentMonth.from);
   const [draftDateTo, setDraftDateTo] = useState(hasActiveSession ? initialSnapshot?.dateTo ?? currentMonth.to : currentMonth.to);
   const [draftClientId, setDraftClientId] = useState("");
-  const [draftUserId, setDraftUserId] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState("");
   const [availableClients, setAvailableClients] = useState<Array<{ id: string; label: string }>>([]);
-  const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; label: string }>>([]);
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
   const [dateError, setDateError] = useState("");
   const [technology, setTechnology] = useState("Todas as tecnologias");
@@ -190,7 +187,6 @@ export default function Home() {
       const payload = await response.json() as ClientsPayload;
       if (response.ok) {
         if (payload.clients?.length) setAvailableClients(payload.clients);
-        if (payload.users?.length) setAvailableUsers(payload.users);
       }
     } catch {
       // The already extracted client list remains available as a fallback.
@@ -243,7 +239,6 @@ export default function Home() {
           ?? nextOrders.find((order) => order.clientId === requestClientId)?.client
           ?? "Todos os clientes"
         : "Todos os clientes");
-      setSelectedUserId(requestUserId || "");
       setLastSync(new Date());
       persistDashboardSnapshot(nextOrders, requestDateFrom, requestDateTo, email);
       setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
@@ -261,7 +256,6 @@ export default function Home() {
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
     setDraftClientId(client === "Todos os clientes" ? "" : orders.find((order) => order.client === client)?.clientId ?? "");
-    setDraftUserId(selectedUserId);
     setDateError("");
     setRefreshModalOpen(true);
   };
@@ -276,7 +270,7 @@ export default function Home() {
       return;
     }
     setRefreshModalOpen(false);
-    await refresh(draftDateFrom, draftDateTo, draftClientId || undefined, draftUserId || undefined, source);
+    await refresh(draftDateFrom, draftDateTo, draftClientId || undefined, undefined, source);
   };
 
   const logout = () => {
@@ -284,8 +278,6 @@ export default function Home() {
     window.sessionStorage.removeItem(SESSION_KEY);
     setPassword("");
     setOrders(normalizeWorkOrders([]));
-    setSelectedUserId("");
-    setDraftUserId("");
     setNotice("");
     setTotalCm2(null);
     setCm2Error("");
@@ -351,7 +343,7 @@ export default function Home() {
         </section>
       </div>
     </section>
-     {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione o período, o e-mail e o cliente para limitar a extração.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">E-mail<select value={draftUserId} onChange={(event) => setDraftUserId(event.target.value)}><option value="">Todos os e-mails</option>{availableUsers.map((user) => <option key={user.id} value={user.id}>{user.label}</option>)}</select></label><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{clientOptions.map((clientOption) => <option key={clientOption.id} value={clientOption.id}>{clientOption.label}</option>)}</select></label>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={() => confirmRefresh("all")}>Atualizar tudo</button><button className="primary-button" onClick={() => confirmRefresh("active")}>Atualizar andamento</button><button className="primary-button" onClick={() => confirmRefresh("closed")}>Atualizar encerrados</button></div></section></div>}
+     {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione a data inicial, a data final e o cliente para limitar a extração.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{clientOptions.map((clientOption) => <option key={clientOption.id} value={clientOption.id}>{clientOption.label}</option>)}</select></label>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={() => confirmRefresh("all")}>Atualizar tudo</button><button className="primary-button" onClick={() => confirmRefresh("active")}>Atualizar andamento</button><button className="primary-button" onClick={() => confirmRefresh("closed")}>Atualizar encerrados</button></div></section></div>}
     </div>
     {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">
       <section className="sync-lock-card">
