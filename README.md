@@ -92,8 +92,8 @@ Depois do deploy, abra **Settings → Networking → Generate Domain** somente n
 | `NUCLEUS_WORKER_INTERNAL_URL` | dashboard | `http://localhost:8787` | Endereço privado do worker |
 | `PORT` | nucleus-worker | `8787` | Porta HTTP privada |
 | `NUCLEUS_MAX_PAGES` | nucleus-worker | `10000` | Limite de páginas de ordens |
-| `NUCLEUS_COMPANY_CONCURRENCY` | nucleus-worker | `4` | Empresas consultadas em paralelo |
-| `NUCLEUS_STATUS_CONCURRENCY` | nucleus-worker | `6` | Status consultados em paralelo |
+| `NUCLEUS_COMPANY_CONCURRENCY` | nucleus-worker | `2` | Empresas consultadas em paralelo |
+| `NUCLEUS_STATUS_CONCURRENCY` | nucleus-worker | `3` | Status consultados em paralelo |
 | `NUCLEUS_URL` | nucleus-worker | URL Studio Laser | Host do Nucleus |
 | `NUCLEUS_ORDERS_URL` | nucleus-worker | URL filtrada no código | Fonte das ordens por empresa |
 | `NUCLEUS_ACTIVE_URL` | nucleus-worker | URL filtrada no código | Consulta da etapa por ID da OS |

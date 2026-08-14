@@ -8,8 +8,8 @@ const ordersUrl = process.env.NUCLEUS_ORDERS_URL || "https://studiolaser.nucleus
 const activeUrl = process.env.NUCLEUS_ACTIVE_URL || "https://studiolaser.nucleusapp.com.br/fluxo_servicos?utf8=%E2%9C%93&aba=todos&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&date_despacho_de=&date_despacho_ate=&user_id=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&id_terceiro=&cod_produto=&cod_barras=&local_gravacao_id=&commit=Filtrar";
 const productionUrl = process.env.NUCLEUS_PRODUCTION_URL || `${target}/dashboard/production`;
 const maxPages = Number(process.env.NUCLEUS_MAX_PAGES || 10000);
-const companyConcurrency = Number(process.env.NUCLEUS_COMPANY_CONCURRENCY || 4);
-const statusConcurrency = Number(process.env.NUCLEUS_STATUS_CONCURRENCY || 6);
+const companyConcurrency = Number(process.env.NUCLEUS_COMPANY_CONCURRENCY || 2);
+const statusConcurrency = Number(process.env.NUCLEUS_STATUS_CONCURRENCY || 3);
 
 function readJson(request) {
   return new Promise((resolve, reject) => {
@@ -111,7 +111,7 @@ async function recoverFlowRows(context, rows, filters) {
           }).catch(() => "");
         }
         if (stage) recovered.push({ ...row, status: stage });
-      } catch {
+    } catch {
         // A missing lookup must not interrupt the main extraction.
       }
     }
@@ -204,22 +204,33 @@ async function extractOrdersByCompanies(context, filters) {
   let nextIndex = 0;
   const workers = await Promise.all(Array.from({ length: Math.min(companyConcurrency, companies.length) }, () => context.newPage()));
 
-  await Promise.all(workers.map(async (page) => {
+  await Promise.all(workers.map(async (initialPage) => {
+    let page = initialPage;
     while (nextIndex < companies.length) {
       const company = companies[nextIndex];
       nextIndex += 1;
-      const result = await extractSource(page, ordersUrl, filters, "orders", company.id);
-      pagesProcessed += result.pagesProcessed;
-      totalPages += result.totalPages;
-      rows.push(...result.rows.map((row) => ({ ...row, companyId: company.id, companyName: company.name })));
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+          const result = await extractSource(page, ordersUrl, filters, "orders", company.id);
+          pagesProcessed += result.pagesProcessed;
+          totalPages += result.totalPages;
+          rows.push(...result.rows.map((row) => ({ ...row, companyId: company.id, companyName: company.name })));
+          break;
+        } catch (error) {
+          const pageCrashed = /Page crashed|Target page, context or browser has been closed/i.test(error instanceof Error ? error.message : String(error));
+          if (!pageCrashed || attempt === 2) throw error;
+          await page.close().catch(() => {});
+          page = await context.newPage();
+        }
+      }
     }
+    await page.close().catch(() => {});
   }));
-  await Promise.all(workers.map((page) => page.close()));
   return { rows, pagesProcessed, totalPages };
 }
 
 async function extract(credentials, filters = {}) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, args: ["--disable-dev-shm-usage"] });
   const context = await browser.newContext();
   const page = await context.newPage();
   try {
@@ -250,7 +261,7 @@ async function extract(credentials, filters = {}) {
 }
 
 async function extractFilterOptions(credentials) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, args: ["--disable-dev-shm-usage"] });
   const context = await browser.newContext();
   const page = await context.newPage();
   try {
@@ -279,7 +290,7 @@ async function extractFilterOptions(credentials) {
 }
 
 async function extractProductionStats(credentials) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, args: ["--disable-dev-shm-usage"] });
   const context = await browser.newContext();
   const page = await context.newPage();
   try {
