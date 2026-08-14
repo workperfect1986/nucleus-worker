@@ -62,7 +62,7 @@ NUCLEUS_MAX_PAGES=10000
 RAILWAY_SHM_SIZE_BYTES=536870912
 ```
 
-As URLs do Nucleus já possuem valores seguros como padrão. Só defina `NUCLEUS_URL`, `NUCLEUS_ORDERS_URL`, `NUCLEUS_ACTIVE_URL` ou `NUCLEUS_PRODUCTION_URL` se precisar substituí-las.
+As URLs do Nucleus já possuem valores seguros como padrão. A URL de ordens é consultada por empresa usando o catálogo em `companies.mjs`; só defina `NUCLEUS_URL`, `NUCLEUS_ORDERS_URL`, `NUCLEUS_ACTIVE_URL` ou `NUCLEUS_PRODUCTION_URL` se precisar substituí-las.
 
 ### 3. Crie o serviço público `dashboard`
 
@@ -92,9 +92,11 @@ Depois do deploy, abra **Settings → Networking → Generate Domain** somente n
 | `NUCLEUS_WORKER_INTERNAL_URL` | dashboard | `http://localhost:8787` | Endereço privado do worker |
 | `PORT` | nucleus-worker | `8787` | Porta HTTP privada |
 | `NUCLEUS_MAX_PAGES` | nucleus-worker | `10000` | Limite de páginas de ordens |
+| `NUCLEUS_COMPANY_CONCURRENCY` | nucleus-worker | `4` | Empresas consultadas em paralelo |
+| `NUCLEUS_STATUS_CONCURRENCY` | nucleus-worker | `6` | Status consultados em paralelo |
 | `NUCLEUS_URL` | nucleus-worker | URL Studio Laser | Host do Nucleus |
-| `NUCLEUS_ORDERS_URL` | nucleus-worker | URL filtrada no código | Fonte das ordens encerradas |
-| `NUCLEUS_ACTIVE_URL` | nucleus-worker | URL filtrada no código | Fonte das ordens em andamento |
+| `NUCLEUS_ORDERS_URL` | nucleus-worker | URL filtrada no código | Fonte das ordens por empresa |
+| `NUCLEUS_ACTIVE_URL` | nucleus-worker | URL filtrada no código | Consulta da etapa por ID da OS |
 | `NUCLEUS_PRODUCTION_URL` | nucleus-worker | `/dashboard/production` | Fonte do total de produção |
 
 ## Segurança

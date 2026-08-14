@@ -1,12 +1,15 @@
 import http from "node:http";
 import { chromium } from "playwright";
+import { nucleusCompanies } from "./companies.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const target = process.env.NUCLEUS_URL || "https://studiolaser.nucleusapp.com.br";
-const ordersUrl = process.env.NUCLEUS_ORDERS_URL || "https://studiolaser.nucleusapp.com.br/ordem_servico?utf8=%E2%9C%93&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&cod_produto=&id_terceiro=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&user_id=7012&finalizado=&cod_barras=&local_gravacao_id=&calculo_z=&financial_system_code=&commit=Filtrar";
-const activeUrl = process.env.NUCLEUS_ACTIVE_URL || "https://studiolaser.nucleusapp.com.br/fluxo_servicos?utf8=%E2%9C%93&aba=todos&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&date_despacho_de=&date_despacho_ate=&user_id=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&id_terceiro=&cod_produto=&cod_barras=&local_gravacao_id=&minhas_ordens_servico=t&commit=Filtrar#";
+const ordersUrl = process.env.NUCLEUS_ORDERS_URL || "https://studiolaser.nucleusapp.com.br/ordem_servico?utf8=%E2%9C%93&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&cod_produto=&id_terceiro=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&user_id=&finalizado=&cod_barras=&local_gravacao_id=&calculo_z=&financial_system_code=&commit=Filtrar";
+const activeUrl = process.env.NUCLEUS_ACTIVE_URL || "https://studiolaser.nucleusapp.com.br/fluxo_servicos?utf8=%E2%9C%93&aba=todos&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&date_despacho_de=&date_despacho_ate=&user_id=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&id_terceiro=&cod_produto=&cod_barras=&local_gravacao_id=&commit=Filtrar";
 const productionUrl = process.env.NUCLEUS_PRODUCTION_URL || `${target}/dashboard/production`;
 const maxPages = Number(process.env.NUCLEUS_MAX_PAGES || 10000);
+const companyConcurrency = Number(process.env.NUCLEUS_COMPANY_CONCURRENCY || 4);
+const statusConcurrency = Number(process.env.NUCLEUS_STATUS_CONCURRENCY || 6);
 
 function readJson(request) {
   return new Promise((resolve, reject) => {
@@ -62,11 +65,13 @@ function normalizeOrderId(value) {
   return String(value || "").replace(/^#/, "").trim();
 }
 
-async function recoverFlowRows(context, rows, filters, knownFlowIds) {
-  const candidates = rows.filter((row) => !isClosedRow(row) && row.id && !knownFlowIds.has(normalizeOrderId(row.id)));
+async function recoverFlowRows(context, rows, filters) {
+  const candidates = Array.from(new Map(rows
+    .filter((row) => !isClosedRow(row) && row.id)
+    .map((row) => [normalizeOrderId(row.id), row])).values());
   const recovered = [];
   let nextIndex = 0;
-  const pages = await Promise.all(Array.from({ length: Math.min(6, candidates.length) }, () => context.newPage()));
+  const pages = await Promise.all(Array.from({ length: Math.min(statusConcurrency, candidates.length) }, () => context.newPage()));
   const workers = pages.map(async (page) => {
     while (nextIndex < candidates.length) {
       const row = candidates[nextIndex];
@@ -74,11 +79,10 @@ async function recoverFlowRows(context, rows, filters, knownFlowIds) {
       try {
         const flowUrl = new URL(activeUrl);
         flowUrl.searchParams.set("os_id", normalizeOrderId(row.id));
-        flowUrl.searchParams.set("user_id", "");
+        flowUrl.searchParams.set("user_id", filters.userId || "");
         flowUrl.searchParams.set("company_id", "");
         flowUrl.searchParams.set("date_de", "");
         flowUrl.searchParams.set("date_ate", "");
-        flowUrl.searchParams.set("minhas_ordens_servico", "t");
         await page.goto(flowUrl.toString(), { waitUntil: "domcontentloaded", timeout: 20_000 });
         if (page.url().includes("/login")) continue;
         const stageCell = page.locator('td[id^="etapa-atual-os-"]').first();
@@ -102,7 +106,7 @@ async function recoverFlowRows(context, rows, filters, knownFlowIds) {
   return recovered;
 }
 
-async function extractSource(page, sourceUrl, filters, source) {
+async function extractSource(page, sourceUrl, filters, source, companyId) {
   const rows = [];
   const seen = new Set();
   const currentMonth = getCurrentMonthRange();
@@ -114,10 +118,9 @@ async function extractSource(page, sourceUrl, filters, source) {
   for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
     const filteredPageUrl = new URL(sourceUrl);
     filteredPageUrl.searchParams.set("page", String(pageNumber));
-    if (filters.clientId) filteredPageUrl.searchParams.set("company_id", filters.clientId);
-    // Keep each source's default user filter: URL 1 is scoped to 7012 while
-    // URL 2 intentionally starts without a user filter. Apply an override
-    // only when the caller explicitly selected one.
+    if (companyId) filteredPageUrl.searchParams.set("company_id", companyId);
+    // Keep the empty user filter from both source URLs unless the caller
+    // explicitly selected a user.
     if (filters.userId) filteredPageUrl.searchParams.set("user_id", filters.userId);
     filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
     filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
@@ -176,6 +179,30 @@ async function extractSource(page, sourceUrl, filters, source) {
   return { rows, pagesProcessed, totalPages };
 }
 
+async function extractOrdersByCompanies(context, filters) {
+  const companies = filters.clientId
+    ? nucleusCompanies.filter((company) => company.id === String(filters.clientId))
+    : nucleusCompanies;
+  const rows = [];
+  let pagesProcessed = 0;
+  let totalPages = 0;
+  let nextIndex = 0;
+  const workers = await Promise.all(Array.from({ length: Math.min(companyConcurrency, companies.length) }, () => context.newPage()));
+
+  await Promise.all(workers.map(async (page) => {
+    while (nextIndex < companies.length) {
+      const company = companies[nextIndex];
+      nextIndex += 1;
+      const result = await extractSource(page, ordersUrl, filters, "orders", company.id);
+      pagesProcessed += result.pagesProcessed;
+      totalPages += result.totalPages;
+      rows.push(...result.rows.map((row) => ({ ...row, companyId: company.id, companyName: company.name })));
+    }
+  }));
+  await Promise.all(workers.map((page) => page.close()));
+  return { rows, pagesProcessed, totalPages };
+}
+
 async function extract(credentials, filters = {}) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
@@ -183,62 +210,23 @@ async function extract(credentials, filters = {}) {
   try {
     await login(page, credentials);
     const source = filters.source || "all";
-    const shouldExtractOrders = source !== "active";
-    const shouldExtractActive = source !== "closed";
-    const [ordersPage, activePage] = await Promise.all([
-      shouldExtractOrders ? context.newPage() : Promise.resolve(null),
-      shouldExtractActive ? context.newPage() : Promise.resolve(null),
-    ]);
-    const [ordersSource, active] = await Promise.all([
-      ordersPage ? extractSource(ordersPage, ordersUrl, filters, "orders") : Promise.resolve({ rows: [], pagesProcessed: 0, totalPages: 0 }),
-      activePage ? extractSource(activePage, activeUrl, filters, "active") : Promise.resolve({ rows: [], pagesProcessed: 0, totalPages: 0 }),
-    ]);
-    await Promise.all([ordersPage?.close(), activePage?.close()]);
+    const ordersSource = await extractOrdersByCompanies(context, filters);
+    const orders = ordersSource.rows;
     if (source === "closed") {
-      const rows = ordersSource.rows.filter((row) => isClosedRow(row));
-      return { rows, pagesProcessed: ordersSource.pagesProcessed, totalPages: ordersSource.totalPages, stagesProcessed: 0, stageErrors: 0 };
+      return { rows: orders.filter((row) => isClosedRow(row)), pagesProcessed: ordersSource.pagesProcessed, totalPages: ordersSource.totalPages, stagesProcessed: 0, stageErrors: 0 };
     }
-    if (source === "active") {
-      return { rows: active.rows, pagesProcessed: active.pagesProcessed, totalPages: active.totalPages, stagesProcessed: 0, stageErrors: 0 };
-    }
-    const knownFlowIds = new Set(active.rows.map((row) => normalizeOrderId(row.id)));
-    const recoveredFlowRows = await recoverFlowRows(context, ordersSource.rows, filters, knownFlowIds);
-    const flowRows = [...active.rows, ...recoveredFlowRows];
-
-    const ordersById = new Map();
-    for (const row of ordersSource.rows) {
-      const id = normalizeOrderId(row.id);
-      if (id) ordersById.set(id, row);
-    }
-
-    const activeIds = new Set();
-    const reconciledActiveRows = flowRows.map((flowRow) => {
-      const id = normalizeOrderId(flowRow.id);
-      activeIds.add(id);
-      const orderRow = ordersById.get(id) || {};
-      return {
-        ...orderRow,
-        ...flowRow,
-        id: flowRow.id || orderRow.id,
-        client: flowRow.client || orderRow.client,
-        clientId: flowRow.clientId || orderRow.clientId,
-        name: flowRow.name || orderRow.name,
-        version: flowRow.version || orderRow.version,
-        order: flowRow.order || orderRow.order,
-      };
-    });
-
-    const closedRows = ordersSource.rows.filter((row) => isClosedRow(row));
-    const missingFromFlowRows = ordersSource.rows
-      .filter((row) => !isClosedRow(row) && !activeIds.has(normalizeOrderId(row.id)))
-      .map((row) => ({ ...row, status: row.status || "Não localizado no fluxo" }));
-    const rows = [...closedRows, ...reconciledActiveRows, ...missingFromFlowRows];
+    const recoveredFlowRows = await recoverFlowRows(context, orders, filters);
+    const statusById = new Map(recoveredFlowRows.map((row) => [normalizeOrderId(row.id), row.status]));
+    const rows = orders.map((row) => ({
+      ...row,
+      status: statusById.get(normalizeOrderId(row.id)) || row.status || "Não localizado no fluxo",
+    })).filter((row) => source !== "active" || !isClosedRow(row));
     return {
       rows,
-      pagesProcessed: ordersSource.pagesProcessed + active.pagesProcessed,
-      totalPages: ordersSource.totalPages + active.totalPages,
-      stagesProcessed: 0,
-      stageErrors: 0,
+      pagesProcessed: ordersSource.pagesProcessed,
+      totalPages: ordersSource.totalPages,
+      stagesProcessed: recoveredFlowRows.length,
+      stageErrors: orders.filter((row) => !isClosedRow(row) && !statusById.has(normalizeOrderId(row.id))).length,
     };
   } finally {
     await context.close();
