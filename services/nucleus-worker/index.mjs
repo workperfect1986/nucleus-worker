@@ -188,7 +188,8 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
       } catch { return 0; }
     }), source);
     totalPages = Math.max(totalPages, ...pageNumbers, pageNumber);
-    if (pageNumber >= totalPages) break;
+    // Keep probing sequential pages until the source returns an empty page.
+    // Some Nucleus responses omit or truncate the pagination links.
   }
   return { rows, pagesProcessed, totalPages };
 }

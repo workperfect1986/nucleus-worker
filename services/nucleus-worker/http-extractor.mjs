@@ -138,14 +138,14 @@ function parseOrders(html) {
 async function extractCompany(client, baseUrl, company, filters, maxPages) {
   const rows = [];
   const seen = new Set();
-  let totalPages = 1;
+  let totalPages = 0;
   let pagesProcessed = 0;
-  for (let page = 1; page <= maxPages && page <= totalPages; page += 1) {
+  for (let page = 1; page <= maxPages; page += 1) {
     const response = await client.request(buildOrdersUrl(baseUrl, company.id, filters, page));
     if (!response.ok) throw new Error(`Nucleus orders returned HTTP ${response.status}`);
     const parsed = parseOrders(await response.text());
     pagesProcessed += 1;
-    totalPages = Math.max(totalPages, parsed.totalPages);
+    totalPages = Math.max(totalPages, parsed.totalPages, page);
     for (const row of parsed.rows) {
       const key = `${row.id}:${row.work}`;
       if (!seen.has(key)) {
