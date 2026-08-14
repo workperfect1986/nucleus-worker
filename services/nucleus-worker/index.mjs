@@ -173,7 +173,7 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
 
     const selectedRows = source === "orders" ? pageRows : pageRows.filter((row) => !isClosedRow(row));
     for (const row of selectedRows) {
-      const key = `${row.id}:${row.work}`;
+      const key = JSON.stringify(row);
       if (!seen.has(key)) { seen.add(key); rows.push(row); }
     }
     if (!pageRows.length) break;

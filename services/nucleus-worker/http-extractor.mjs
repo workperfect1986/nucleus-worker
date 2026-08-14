@@ -147,7 +147,7 @@ async function extractCompany(client, baseUrl, company, filters, maxPages) {
     pagesProcessed += 1;
     totalPages = Math.max(totalPages, parsed.totalPages, page);
     for (const row of parsed.rows) {
-      const key = `${row.id}:${row.work}`;
+      const key = JSON.stringify(row);
       if (!seen.has(key)) {
         seen.add(key);
         rows.push({ ...row, companyId: company.id, companyName: company.name });
