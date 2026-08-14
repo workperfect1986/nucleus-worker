@@ -13,6 +13,10 @@ RUN cd services/nucleus-worker && pnpm install --frozen-lockfile --prod
 COPY . .
 ENV NODE_ENV=production
 RUN pnpm install --frozen-lockfile --prod=false \
+    && cd services/nucleus-worker \
+    && pnpm install --frozen-lockfile --prod \
+    && test -f node_modules/cheerio/package.json \
+    && cd /app \
     && test -f node_modules/vinext/dist/cli.js \
     && node node_modules/vinext/dist/cli.js build
 
