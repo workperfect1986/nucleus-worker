@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { nucleusCompanies } from "./companies.mjs";
+import { isClosedRow } from "./row-rules.mjs";
 
 const defaultHeaders = {
   "User-Agent": "Mozilla/5.0 (compatible; Studio-Laser-Worker/1.0)",
@@ -19,10 +20,6 @@ function currentMonthRange() {
     from: toIso(new Date(now.getFullYear(), now.getMonth(), 1)),
     to: toIso(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
   };
-}
-
-function isClosedRow(row) {
-  return /encerrado/i.test(`${row.label || ""} ${row.status || ""}`);
 }
 
 function normalizeId(value) {

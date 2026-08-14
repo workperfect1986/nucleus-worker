@@ -2,6 +2,7 @@ import http from "node:http";
 import { chromium } from "playwright";
 import { nucleusCompanies } from "./companies.mjs";
 import { extractWithHttp } from "./http-extractor.mjs";
+import { isClosedRow } from "./row-rules.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const target = process.env.NUCLEUS_URL || "https://studiolaser.nucleusapp.com.br";
@@ -57,10 +58,6 @@ async function login(page, credentials) {
   const body = await page.locator("body").innerText();
   if (page.url().includes("/login")) throw new Error("Nucleus authentication failed");
   if (/captcha|código de verificação|autenticação em dois fatores/i.test(body)) throw new Error("Nucleus requires CAPTCHA or 2FA");
-}
-
-function isClosedRow(row) {
-  return /encerrado/i.test(`${row.label || ""} ${row.status || ""}`);
 }
 
 function normalizeOrderId(value) {
