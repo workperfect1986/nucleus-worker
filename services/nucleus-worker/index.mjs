@@ -292,16 +292,12 @@ async function extractFilterOptions(credentials) {
     await gotoWithRetry(page, filterOptionsUrl.toString(), { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during client extraction");
 
-    const options = await page.locator('select[name="company_id"] option').evaluateAll((elements) => elements.map((option) => ({
-      id: option.getAttribute("value")?.trim() || "",
-      label: option.textContent?.trim() || "",
-    })).filter((option) => option.id && option.label));
     const users = await page.locator('select[name="user_id"] option').evaluateAll((elements) => elements.map((option) => ({
       id: option.getAttribute("value")?.trim() || "",
       label: option.textContent?.trim() || "",
     })).filter((option) => option.id && option.label));
     return {
-      clients: Array.from(new Map(options.map((option) => [option.id, option])).values()).sort((left, right) => left.label.localeCompare(right.label, "pt-BR")),
+      clients: nucleusCompanies.map((company) => ({ id: company.id, label: company.name })).sort((left, right) => left.label.localeCompare(right.label, "pt-BR")),
       users: Array.from(new Map(users.map((option) => [option.id, option])).values()).sort((left, right) => left.label.localeCompare(right.label, "pt-BR")),
     };
   } finally {
