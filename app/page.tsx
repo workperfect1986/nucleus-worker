@@ -11,6 +11,7 @@ type ExtractionPayload = {
   totalPages?: number;
   stagesProcessed?: number;
   stageErrors?: number;
+  metrics?: { durationMs?: number; statusCacheHits?: number; statusRequests?: number; pagesSavedByIncremental?: number; newOrders?: number };
   error?: string;
 };
 
@@ -33,6 +34,9 @@ const getDashboardSortValue = (order: WorkOrder, key: DashboardSortKey) => {
 
 const workerUrl = process.env.NEXT_PUBLIC_NUCLEUS_WORKER_URL || "/api/nucleus";
 const formatTime = (date: Date) => date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const formatExtractionMetrics = (metrics?: ExtractionPayload["metrics"]) => metrics
+  ? ` · ${((metrics.durationMs ?? 0) / 1000).toFixed(1)}s · ${metrics.statusCacheHits ?? 0} status em cache`
+  : "";
 const formatSquareMeters = (squareCentimeters: number) => (squareCentimeters / 10_000).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const toDateInput = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const today = new Date();
@@ -196,7 +200,7 @@ export default function Home() {
       setOrders(nextOrders);
       setLastSync(new Date());
       persistDashboardSnapshot(nextOrders, dateFrom, dateTo, email);
-      setNotice(`Sincronização concluída: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
+      setNotice(`Sincronização concluída: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}${formatExtractionMetrics(payload.metrics)}.`);
       setNoticeError(false);
       setAuthenticated(true);
       window.sessionStorage.setItem(SESSION_KEY, "authenticated");
@@ -230,7 +234,7 @@ export default function Home() {
         : "Todos os clientes");
       setLastSync(new Date());
       persistDashboardSnapshot(nextOrders, requestDateFrom, requestDateTo, email);
-      setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}.`);
+       setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}${formatExtractionMetrics(payload.metrics)}.`);
       setNoticeError(false);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Falha ao atualizar os dados.");

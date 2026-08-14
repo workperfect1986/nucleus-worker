@@ -364,7 +364,7 @@ const server = http.createServer(async (request, response) => {
       return;
     }
     const result = await extract(credentials, body.filters);
-    response.writeHead(200); response.end(JSON.stringify({ orders: result.rows, pagesProcessed: result.pagesProcessed, totalPages: result.totalPages, stagesProcessed: result.stagesProcessed, stageErrors: result.stageErrors, extractedAt: new Date().toISOString() }));
+    response.writeHead(200); response.end(JSON.stringify({ orders: result.rows, pagesProcessed: result.pagesProcessed, totalPages: result.totalPages, stagesProcessed: result.stagesProcessed, stageErrors: result.stageErrors, metrics: result.metrics, extractedAt: new Date().toISOString() }));
   } catch (error) {
     response.writeHead(502); response.end(JSON.stringify({ error: error instanceof Error ? error.message : "Extraction failed" }));
   }

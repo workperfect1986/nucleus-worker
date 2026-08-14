@@ -6,6 +6,10 @@ const defaultHeaders = {
   "User-Agent": "Mozilla/5.0 (compatible; Studio-Laser-Worker/1.0)",
   Accept: "text/html,application/xhtml+xml",
 };
+const orderCache = new Map();
+const statusCache = new Map();
+const defaultOrderCacheTtlMs = 30 * 60 * 1000;
+const defaultStatusCacheTtlMs = 5 * 60 * 1000;
 
 function formatQueryDate(value) {
   if (!value) return "";
@@ -35,6 +39,7 @@ function readSetCookies(headers) {
 class SessionClient {
   constructor() {
     this.cookies = new Map();
+    this.metrics = { requests: 0, requestMs: 0 };
   }
 
   cookieHeader() {
@@ -50,6 +55,7 @@ class SessionClient {
   }
 
   async request(url, options = {}) {
+    const startedAt = Date.now();
     let currentUrl = url;
     let method = options.method || "GET";
     let body = options.body;
@@ -66,8 +72,12 @@ class SessionClient {
           ...(options.headers || {}),
         },
       });
+      this.metrics.requests += 1;
       this.saveCookies(response.headers);
-      if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+      if (![301, 302, 303, 307, 308].includes(response.status)) {
+        this.metrics.requestMs += Date.now() - startedAt;
+        return response;
+      }
       const location = response.headers.get("location");
       if (!location) return response;
       currentUrl = new URL(location, currentUrl).toString();
@@ -135,11 +145,17 @@ function parseOrders(html) {
   return { rows, totalPages: Math.max(1, ...pages) };
 }
 
-async function extractCompany(client, baseUrl, company, filters, maxPages) {
-  const rows = [];
+async function extractCompany(client, baseUrl, company, filters, maxPages, cacheNamespace) {
+  const cacheKey = JSON.stringify([cacheNamespace, company.id, filters.dateFrom || "", filters.dateTo || "", filters.userId || ""]);
+  const cached = orderCache.get(cacheKey);
+  const cachedIsValid = cached && Date.now() - cached.updatedAt < defaultOrderCacheTtlMs;
+  const cachedRows = cachedIsValid ? cached.rows : [];
+  const cachedKeys = new Set(cachedRows.map((row) => JSON.stringify(row)));
+  const freshRows = [];
   const seen = new Set();
   let totalPages = 0;
   let pagesProcessed = 0;
+  let incrementalStop = false;
   for (let page = 1; page <= maxPages; page += 1) {
     const response = await client.request(buildOrdersUrl(baseUrl, company.id, filters, page));
     if (!response.ok) throw new Error(`Nucleus orders returned HTTP ${response.status}`);
@@ -150,12 +166,28 @@ async function extractCompany(client, baseUrl, company, filters, maxPages) {
       const key = JSON.stringify(row);
       if (!seen.has(key)) {
         seen.add(key);
-        rows.push({ ...row, companyId: company.id, companyName: company.name });
+        freshRows.push({ ...row, companyId: company.id, companyName: company.name });
       }
     }
     if (!parsed.rows.length) break;
+    if (cachedIsValid && page >= 1 && parsed.rows.every((row) => cachedKeys.has(JSON.stringify(row)))) {
+      incrementalStop = true;
+      break;
+    }
   }
-  return { rows, pagesProcessed, totalPages };
+  const mergedRows = new Map(cachedRows.map((row) => [JSON.stringify(row), row]));
+  for (const row of freshRows) mergedRows.set(JSON.stringify(row), row);
+  const rows = Array.from(mergedRows.values());
+  orderCache.set(cacheKey, { rows, updatedAt: Date.now() });
+  return {
+    rows,
+    pagesProcessed,
+    totalPages,
+    cached: cachedIsValid,
+    cachedRows: cachedRows.length,
+    newRows: freshRows.filter((row) => !cachedKeys.has(JSON.stringify(row))).length,
+    incrementalStop,
+  };
 }
 
 async function extractStatus(client, baseUrl, row, filters) {
@@ -193,17 +225,52 @@ async function mapWithConcurrency(items, concurrency, callback) {
 
 export async function extractWithHttp(credentials, filters, config) {
   const client = new SessionClient();
+  const startedAt = Date.now();
   await login(client, credentials, config.target);
   const companies = filters.clientId ? nucleusCompanies.filter((company) => company.id === String(filters.clientId)) : nucleusCompanies;
-  const extracted = await mapWithConcurrency(companies, config.companyConcurrency, (company) => extractCompany(client, config.ordersUrl, company, filters, config.maxPages));
+  const cacheNamespace = credentials.email || "anonymous";
+  const extracted = await mapWithConcurrency(companies, config.companyConcurrency, (company) => extractCompany(client, config.ordersUrl, company, filters, config.maxPages, cacheNamespace));
   const orders = extracted.flatMap((result) => result.rows);
   const pagesProcessed = extracted.reduce((sum, result) => sum + result.pagesProcessed, 0);
   const totalPages = extracted.reduce((sum, result) => sum + result.totalPages, 0);
-  if (filters.source === "closed") return { rows: orders.filter(isClosedRow), pagesProcessed, totalPages, stagesProcessed: 0, stageErrors: 0 };
+  const metrics = {
+    mode: "http",
+    durationMs: Date.now() - startedAt,
+    companiesRequested: companies.length,
+    companiesCached: extracted.filter((result) => result.cached).length,
+    pagesProcessed,
+    pagesSavedByIncremental: extracted.filter((result) => result.incrementalStop).length,
+    cachedOrders: extracted.reduce((sum, result) => sum + result.cachedRows, 0),
+    newOrders: extracted.reduce((sum, result) => sum + result.newRows, 0),
+    statusCacheHits: 0,
+    statusRequests: 0,
+    httpRequests: client.metrics.requests,
+    httpRequestMs: client.metrics.requestMs,
+  };
+  if (filters.source === "closed") {
+    metrics.httpRequests = client.metrics.requests;
+    metrics.httpRequestMs = client.metrics.requestMs;
+    metrics.durationMs = Date.now() - startedAt;
+    return { rows: orders.filter(isClosedRow), pagesProcessed, totalPages, stagesProcessed: 0, stageErrors: 0, metrics };
+  }
   const activeOrders = orders.filter((row) => !isClosedRow(row));
-  const statuses = await mapWithConcurrency(activeOrders, config.statusConcurrency, (row) => extractStatus(client, config.activeUrl, row, filters));
+  const statuses = await mapWithConcurrency(activeOrders, config.statusConcurrency, async (row) => {
+    const key = `${cacheNamespace}:${normalizeId(row.id)}:${filters.userId || ""}`;
+    const cached = statusCache.get(key);
+    if (cached && Date.now() - cached.updatedAt < defaultStatusCacheTtlMs) {
+      metrics.statusCacheHits += 1;
+      return cached.status;
+    }
+    metrics.statusRequests += 1;
+    const status = await extractStatus(client, config.activeUrl, row, filters);
+    statusCache.set(key, { status, updatedAt: Date.now() });
+    return status;
+  });
   const statusById = new Map();
   activeOrders.forEach((row, index) => { if (statuses[index]) statusById.set(normalizeId(row.id), statuses[index]); });
   const rows = orders.map((row) => ({ ...row, status: statusById.get(normalizeId(row.id)) || row.status || "Não localizado no fluxo" })).filter((row) => filters.source !== "active" || !isClosedRow(row));
-  return { rows, pagesProcessed, totalPages, stagesProcessed: statuses.filter(Boolean).length, stageErrors: statuses.filter((status) => !status).length };
+  metrics.httpRequests = client.metrics.requests;
+  metrics.httpRequestMs = client.metrics.requestMs;
+  metrics.durationMs = Date.now() - startedAt;
+  return { rows, pagesProcessed, totalPages, stagesProcessed: statuses.filter(Boolean).length, stageErrors: statuses.filter((status) => !status).length, metrics };
 }
