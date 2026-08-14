@@ -4,7 +4,7 @@ import { chromium } from "playwright";
 const port = Number(process.env.PORT || 8787);
 const target = process.env.NUCLEUS_URL || "https://studiolaser.nucleusapp.com.br";
 const ordersUrl = process.env.NUCLEUS_ORDERS_URL || "https://studiolaser.nucleusapp.com.br/ordem_servico?utf8=%E2%9C%93&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&cod_produto=&id_terceiro=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&user_id=7012&finalizado=&cod_barras=&local_gravacao_id=&calculo_z=&financial_system_code=&commit=Filtrar";
-const activeUrl = process.env.NUCLEUS_ACTIVE_URL || "https://studiolaser.nucleusapp.com.br/fluxo_servicos?utf8=%E2%9C%93&aba=todos&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&date_despacho_de=&date_despacho_ate=&user_id=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&id_terceiro=&cod_produto=&cod_barras=&local_gravacao_id=&commit=Filtrar#";
+const activeUrl = process.env.NUCLEUS_ACTIVE_URL || "https://studiolaser.nucleusapp.com.br/fluxo_servicos?utf8=%E2%9C%93&aba=todos&chave=&os_id=&work_order_id=&company_id=&date_de=&date_ate=&date_despacho_de=&date_despacho_ate=&user_id=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&id_terceiro=&cod_produto=&cod_barras=&local_gravacao_id=&minhas_ordens_servico=t&commit=Filtrar#";
 const productionUrl = process.env.NUCLEUS_PRODUCTION_URL || `${target}/dashboard/production`;
 const maxPages = Number(process.env.NUCLEUS_MAX_PAGES || 10000);
 
@@ -78,7 +78,7 @@ async function recoverFlowRows(context, rows, filters, knownFlowIds) {
         flowUrl.searchParams.set("company_id", "");
         flowUrl.searchParams.set("date_de", "");
         flowUrl.searchParams.set("date_ate", "");
-        flowUrl.searchParams.set("minhas_ordens_servico", "");
+        flowUrl.searchParams.set("minhas_ordens_servico", "t");
         await page.goto(flowUrl.toString(), { waitUntil: "domcontentloaded", timeout: 20_000 });
         if (page.url().includes("/login")) continue;
         const stageCell = page.locator('td[id^="etapa-atual-os-"]').first();
@@ -116,7 +116,6 @@ async function extractSource(page, sourceUrl, filters, source) {
     filteredPageUrl.searchParams.set("page", String(pageNumber));
     if (filters.clientId) filteredPageUrl.searchParams.set("company_id", filters.clientId);
     filteredPageUrl.searchParams.set("user_id", filters.userId || "");
-    if (source === "active") filteredPageUrl.searchParams.set("minhas_ordens_servico", "");
     filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
     filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
     await page.goto(filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
