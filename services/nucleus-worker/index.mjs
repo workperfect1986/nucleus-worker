@@ -115,7 +115,10 @@ async function extractSource(page, sourceUrl, filters, source) {
     const filteredPageUrl = new URL(sourceUrl);
     filteredPageUrl.searchParams.set("page", String(pageNumber));
     if (filters.clientId) filteredPageUrl.searchParams.set("company_id", filters.clientId);
-    filteredPageUrl.searchParams.set("user_id", filters.userId || "");
+    // Keep each source's default user filter: URL 1 is scoped to 7012 while
+    // URL 2 intentionally starts without a user filter. Apply an override
+    // only when the caller explicitly selected one.
+    if (filters.userId) filteredPageUrl.searchParams.set("user_id", filters.userId);
     filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
     filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
     await page.goto(filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
