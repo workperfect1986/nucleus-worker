@@ -6,7 +6,7 @@ RUN npm install --global pnpm@11.16.0
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
-COPY index.mjs ./
+COPY *.mjs ./
 
 ENV NODE_ENV=production
 EXPOSE 8787

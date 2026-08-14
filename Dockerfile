@@ -4,9 +4,11 @@ WORKDIR /app
 RUN npm install --global pnpm@11.16.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY services/nucleus-worker/package.json services/nucleus-worker/pnpm-lock.yaml ./services/nucleus-worker/
 RUN NODE_ENV=development pnpm install --frozen-lockfile --prod=false \
     && test -f node_modules/vinext/dist/cli.js \
     && test -f node_modules/playwright/package.json
+RUN cd services/nucleus-worker && pnpm install --frozen-lockfile --prod
 
 COPY . .
 ENV NODE_ENV=production
