@@ -12,7 +12,9 @@ RUN cd services/nucleus-worker && pnpm install --frozen-lockfile --prod
 
 COPY . .
 ENV NODE_ENV=production
-RUN node node_modules/vinext/dist/cli.js build
+RUN pnpm install --frozen-lockfile --prod=false \
+    && test -f node_modules/vinext/dist/cli.js \
+    && node node_modules/vinext/dist/cli.js build
 
 FROM mcr.microsoft.com/playwright:v1.52.0-noble AS runner
 
