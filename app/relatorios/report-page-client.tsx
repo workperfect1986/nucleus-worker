@@ -78,6 +78,15 @@ export default function ReportPageClient() {
     });
   };
   const filteredOrders = allFilteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const printableOrders = useMemo(() => [...allFilteredOrders].sort((left, right) => {
+    const clientComparison = left.client.localeCompare(right.client, "pt-BR", { sensitivity: "base" });
+    if (clientComparison !== 0) return clientComparison;
+
+    const nameComparison = left.name.localeCompare(right.name, "pt-BR", { sensitivity: "base" });
+    if (nameComparison !== 0) return nameComparison;
+
+    return Number(left.id) - Number(right.id);
+  }), [allFilteredOrders]);
 
   const clientLabel = selectedClients.length === 0
     ? "Todos os clientes"
@@ -106,7 +115,7 @@ export default function ReportPageClient() {
     window.setTimeout(() => {
       window.print();
       setIsGenerating(false);
-      setStatusMessage(`Relatório pronto para salvar em PDF com ${filteredOrders.length} ordem(s).`);
+      setStatusMessage(`Relatório pronto para salvar em PDF com ${printableOrders.length} ordem(s).`);
     }, 0);
     return;
 
@@ -305,7 +314,7 @@ export default function ReportPageClient() {
         <div><span>Filtros</span><strong>{clientLabel} · {typeFilter} · {statusFilter === "all" ? "Todos os status" : statusFilter === "active" ? "Em andamento" : "Encerrados"}</strong></div>
       </div>
       <div className="print-report-summary">
-        <div><span>Ordens no relatório</span><strong>{filteredOrders.length}</strong></div>
+        <div><span>Ordens no relatório</span><strong>{printableOrders.length}</strong></div>
         <div><span>Em andamento</span><strong>{activeCount}</strong></div>
         <div><span>Encerrados</span><strong>{closedCount}</strong></div>
         <div><span>Clientes</span><strong>{selectedClients.length || clients.length}</strong></div>
@@ -313,13 +322,13 @@ export default function ReportPageClient() {
       <div className="print-report-table-wrap">
         <table>
            <thead><tr><th>Ordem</th><th>Cliente / Nome</th><th>Status</th></tr></thead>
-          <tbody>{filteredOrders.map((order) => <tr key={`print-${order.id}-${order.work}`}>
+          <tbody>{printableOrders.map((order) => <tr key={`print-${order.id}-${order.work}`}>
             <td><strong>#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td>
             <td><strong>{order.client}</strong><small>{order.name}</small></td>
              <td><span className={`print-status nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}>{order.isClosed ? "Encerrado" : order.status}</span></td>
           </tr>)}</tbody>
         </table>
-        {filteredOrders.length === 0 && <div className="print-empty-state"><strong>Nenhuma ordem encontrada</strong><span>Não há dados para os filtros selecionados.</span></div>}
+        {printableOrders.length === 0 && <div className="print-empty-state"><strong>Nenhuma ordem encontrada</strong><span>Não há dados para os filtros selecionados.</span></div>}
       </div>
       <footer className="print-report-footer"><span>Studio Laser · Relatório de produção</span><span>Documento gerado pelo Nucleus Painel</span></footer>
     </section>
