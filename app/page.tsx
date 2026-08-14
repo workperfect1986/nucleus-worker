@@ -79,8 +79,8 @@ export default function Home() {
   const [draftClientId, setDraftClientId] = useState("");
   const [refreshModalOpen, setRefreshModalOpen] = useState(false);
   const [dateError, setDateError] = useState("");
-  const [technology, setTechnology] = useState("Todas as tecnologias");
   const [type, setType] = useState("Todos os tipos");
+  const [statusFilter, setStatusFilter] = useState("Todos os status");
   const [refreshing, setRefreshing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(() => hasActiveSession && initialSnapshot?.lastSync ? new Date(initialSnapshot.lastSync) : null);
   const [notice, setNotice] = useState("");
@@ -98,8 +98,8 @@ export default function Home() {
   };
 
   const clients = useMemo(() => Array.from(new Set(orders.map((order) => order.client))).sort(), [orders]);
-  const technologies = useMemo(() => Array.from(new Set(orders.map((order) => order.technology))).sort(), [orders]);
   const types = useMemo(() => Array.from(new Set(orders.map((order) => order.type))).sort(), [orders]);
+  const statuses = useMemo(() => Array.from(new Set(orders.filter((order) => !order.isClosed).map((order) => order.status))).filter(Boolean).sort(), [orders]);
   const toggleSort = (nextKey: DashboardSortKey) => {
     if (sortKey === nextKey) {
       setSortDirection((current) => current === "asc" ? "desc" : "asc");
@@ -117,8 +117,8 @@ export default function Home() {
     return matchesTab && haystack.includes(query.toLowerCase()) &&
       (client === "Todos os clientes" || order.client === client) &&
       (tab === "active" || ((!dateFrom || orderDate >= dateFrom) && (!dateTo || orderDate <= dateTo))) &&
-      (tab === "active" || (technology === "Todas as tecnologias" || order.technology === technology)) &&
-      (tab === "active" || (type === "Todos os tipos" || order.type === type));
+      (tab === "active" || (type === "Todos os tipos" || order.type === type)) &&
+      (tab !== "active" || statusFilter === "Todos os status" || order.status === statusFilter);
   }).sort((left, right) => {
     const leftValue = getDashboardSortValue(left, sortKey);
     const rightValue = getDashboardSortValue(right, sortKey);
@@ -126,9 +126,9 @@ export default function Home() {
       ? leftValue - rightValue
       : String(leftValue).localeCompare(String(rightValue), "pt-BR", { numeric: true, sensitivity: "base" });
     return sortDirection === "asc" ? comparison : -comparison;
-  }), [client, dateFrom, dateTo, orders, query, sortDirection, sortKey, tab, technology, type]);
+  }), [client, dateFrom, dateTo, orders, query, sortDirection, sortKey, statusFilter, tab, type]);
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
-  const pageKey = `${client}|${dateFrom}|${dateTo}|${query}|${sortDirection}|${sortKey}|${tab}|${technology}|${type}|${orders.length}`;
+  const pageKey = `${client}|${dateFrom}|${dateTo}|${query}|${sortDirection}|${sortKey}|${statusFilter}|${tab}|${type}|${orders.length}`;
   const currentPage = pagination.key === pageKey ? Math.min(pagination.page, totalPages) : 1;
   const setCurrentPage = (nextPage: number | ((page: number) => number)) => {
     setPagination((current) => {
@@ -328,7 +328,7 @@ export default function Home() {
         <section className="orders-section" data-tab={tab}>
           <div className="section-heading"><div><h2>Ordens de serviço</h2><p>Dados sincronizados do Nucleus.</p></div></div>
           <div className="tabs" role="tablist"><button className={tab === "active" ? "selected" : ""} onClick={() => setTab("active")} role="tab" aria-selected={tab === "active"}>Em andamento <span>{activeCount}</span></button><button className={tab === "closed" ? "selected" : ""} onClick={() => setTab("closed")} role="tab" aria-selected={tab === "closed"}>Encerrados <span>{closedCount}</span></button></div>
-          <div className="filters"><div className="search-wrap"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por cliente, nome ou número..." aria-label="Buscar ordens" /></div><select value={client} onChange={(event) => setClient(event.target.value)} aria-label="Filtrar cliente"><option>Todos os clientes</option>{clients.map((item) => <option key={item}>{item}</option>)}</select><select value={technology} onChange={(event) => setTechnology(event.target.value)} aria-label="Filtrar tecnologia"><option>Todas as tecnologias</option>{technologies.map((item) => <option key={item}>{item}</option>)}</select><select value={type} onChange={(event) => setType(event.target.value)} aria-label="Filtrar tipo"><option>Todos os tipos</option>{types.map((item) => <option key={item}>{item}</option>)}</select></div>
+           <div className="filters"><div className="search-wrap"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por cliente, nome ou número..." aria-label="Buscar ordens" /></div><select value={client} onChange={(event) => setClient(event.target.value)} aria-label="Filtrar cliente"><option>Todos os clientes</option>{clients.map((item) => <option key={item}>{item}</option>)}</select><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filtrar status"><option>Todos os status</option>{statuses.map((item) => <option key={item}>{item}</option>)}</select><select value={type} onChange={(event) => setType(event.target.value)} aria-label="Filtrar tipo"><option>Todos os tipos</option>{types.map((item) => <option key={item}>{item}</option>)}</select></div>
            {tab === "active" && <div className="table-wrap active-orders-table"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("type")}>Tipo <span>{sortIndicator("type")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th></tr></thead><tbody>{visibleOrders.map((order, index) => <tr key={`${order.id}-${order.work}-${index}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.status}</span></td></tr>)}</tbody></table>{visibleOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>}
           <div className="table-wrap"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("work")}>Trabalho <span>{sortIndicator("work")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("technology")}>Tecnologia <span>{sortIndicator("technology")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("type")}>Tipo <span>{sortIndicator("type")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th><th aria-label="Ações" /></tr></thead><tbody>{visibleOrders.map((order) => <tr key={`${order.id}-${order.work}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.work}</strong><span>Trabalho</span></td><td><strong>{order.technology}</strong><span>{order.thickness} mm</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td><td><button className="row-more" aria-label={`Ações para ${order.id}`}>•••</button></td></tr>)}</tbody></table>{visibleOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Tente ajustar a aba ou os filtros.</span></div>}</div>
            <div className="table-footer"><span>Mostrando <strong>{visibleOrders.length}</strong> de <strong>{filteredOrders.length}</strong> ordens</span><div className="pagination" aria-label="Paginação das ordens"><button type="button" onClick={() => setCurrentPage((page) => page - 1)} disabled={currentPage === 1} aria-label="Página anterior">‹</button>{Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => <button type="button" key={page} className={page === currentPage ? "current" : ""} onClick={() => setCurrentPage(page)} aria-label={`Página ${page}`} aria-current={page === currentPage ? "page" : undefined}>{page}</button>)}<button type="button" onClick={() => setCurrentPage((page) => page + 1)} disabled={currentPage === totalPages} aria-label="Próxima página">›</button></div></div>

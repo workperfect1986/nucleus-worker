@@ -200,6 +200,12 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .active-orders-table th:nth-child(4),.active-orders-table td:nth-child(4) { width:24%; }
 .active-orders-table th:nth-child(5),.active-orders-table td:nth-child(5) { width:22%; }
 .active-orders-table th:nth-child(6),.active-orders-table td:nth-child(6) { width:18%; }
+.report-orders-table table { table-layout:fixed !important; }
+.report-orders-table th,.report-orders-table td { display:table-cell !important; }
+.report-orders-table th:nth-child(1),.report-orders-table td:nth-child(1) { width:112px; }
+.report-orders-table th:nth-child(2),.report-orders-table td:nth-child(2) { width:auto; white-space:normal; }
+.report-orders-table th:nth-child(3),.report-orders-table td:nth-child(3) { width:170px; }
+.report-orders-table td:nth-child(3) { overflow:hidden; text-overflow:ellipsis; }
 .empty-state { padding:54px; text-align:center; display:flex; flex-direction:column; gap:8px; color:#6e7a82; }
 .empty-state strong { color:#aeb8be; }
 .empty-state span { font-size:11px; }
@@ -307,6 +313,9 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
   .print-report-table-wrap table { border-collapse:collapse; width:100%; }
   .print-report-table-wrap thead { display:table-header-group; }
   .print-report-table-wrap th { background:#173b3b; color:#fff; font-size:8px; letter-spacing:.5px; padding:8px 7px; text-align:left; text-transform:uppercase; }
+  .print-report-table-wrap th:nth-child(1),.print-report-table-wrap td:nth-child(1) { width:18%; }
+  .print-report-table-wrap th:nth-child(2),.print-report-table-wrap td:nth-child(2) { width:auto; }
+  .print-report-table-wrap th:nth-child(3),.print-report-table-wrap td:nth-child(3) { width:20%; }
   .print-report-table-wrap td { border-bottom:1px solid #e1e8e9; color:#465961; font-size:9px; padding:7px; vertical-align:top; }
   .print-report-table-wrap tbody tr:nth-child(even) td { background:#f7f9f9; }
   .print-report-table-wrap td strong,.print-report-table-wrap td small { display:block; }
