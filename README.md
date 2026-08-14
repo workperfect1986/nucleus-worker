@@ -59,6 +59,9 @@ Variáveis:
 ```env
 PORT=8787
 NUCLEUS_MAX_PAGES=10000
+NUCLEUS_EXTRACTION_MODE=auto
+NUCLEUS_COMPANY_CONCURRENCY=2
+NUCLEUS_STATUS_CONCURRENCY=3
 RAILWAY_SHM_SIZE_BYTES=536870912
 ```
 
@@ -92,6 +95,7 @@ Depois do deploy, abra **Settings → Networking → Generate Domain** somente n
 | `NUCLEUS_WORKER_INTERNAL_URL` | dashboard | `http://localhost:8787` | Endereço privado do worker |
 | `PORT` | nucleus-worker | `8787` | Porta HTTP privada |
 | `NUCLEUS_MAX_PAGES` | nucleus-worker | `10000` | Limite de páginas de ordens |
+| `NUCLEUS_EXTRACTION_MODE` | nucleus-worker | `auto` | `http`, `browser` ou fallback automático |
 | `NUCLEUS_COMPANY_CONCURRENCY` | nucleus-worker | `2` | Empresas consultadas em paralelo |
 | `NUCLEUS_STATUS_CONCURRENCY` | nucleus-worker | `3` | Status consultados em paralelo |
 | `NUCLEUS_URL` | nucleus-worker | URL Studio Laser | Host do Nucleus |

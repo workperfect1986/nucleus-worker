@@ -1,6 +1,7 @@
 import http from "node:http";
 import { chromium } from "playwright";
 import { nucleusCompanies } from "./companies.mjs";
+import { extractWithHttp } from "./http-extractor.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const target = process.env.NUCLEUS_URL || "https://studiolaser.nucleusapp.com.br";
@@ -10,6 +11,7 @@ const productionUrl = process.env.NUCLEUS_PRODUCTION_URL || `${target}/dashboard
 const maxPages = Number(process.env.NUCLEUS_MAX_PAGES || 10000);
 const companyConcurrency = Number(process.env.NUCLEUS_COMPANY_CONCURRENCY || 2);
 const statusConcurrency = Number(process.env.NUCLEUS_STATUS_CONCURRENCY || 3);
+const extractionMode = process.env.NUCLEUS_EXTRACTION_MODE || "auto";
 
 function readJson(request) {
   return new Promise((resolve, reject) => {
@@ -229,7 +231,7 @@ async function extractOrdersByCompanies(context, filters) {
   return { rows, pagesProcessed, totalPages };
 }
 
-async function extract(credentials, filters = {}) {
+async function extractWithBrowser(credentials, filters = {}) {
   const browser = await chromium.launch({ headless: true, args: ["--disable-dev-shm-usage"] });
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -258,6 +260,25 @@ async function extract(credentials, filters = {}) {
     await context.close();
     await browser.close();
   }
+}
+
+async function extract(credentials, filters = {}) {
+  if (extractionMode !== "browser") {
+    try {
+      return await extractWithHttp(credentials, filters, {
+        target,
+        ordersUrl,
+        activeUrl,
+        maxPages,
+        companyConcurrency,
+        statusConcurrency,
+      });
+    } catch (error) {
+      if (extractionMode === "http") throw error;
+      console.warn(`HTTP extraction failed, falling back to browser: ${error instanceof Error ? error.message : "unknown error"}`);
+    }
+  }
+  return extractWithBrowser(credentials, filters);
 }
 
 async function extractFilterOptions(credentials) {

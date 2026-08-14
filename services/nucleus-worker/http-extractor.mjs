@@ -1,0 +1,212 @@
+import * as cheerio from "cheerio";
+import { nucleusCompanies } from "./companies.mjs";
+
+const defaultHeaders = {
+  "User-Agent": "Mozilla/5.0 (compatible; Studio-Laser-Worker/1.0)",
+  Accept: "text/html,application/xhtml+xml",
+};
+
+function formatQueryDate(value) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function currentMonthRange() {
+  const now = new Date();
+  const toIso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return {
+    from: toIso(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: toIso(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+  };
+}
+
+function isClosedRow(row) {
+  return /encerrado/i.test(`${row.label || ""} ${row.status || ""}`);
+}
+
+function normalizeId(value) {
+  return String(value || "").replace(/^#/, "").trim();
+}
+
+function readSetCookies(headers) {
+  if (typeof headers.getSetCookie === "function") return headers.getSetCookie();
+  const combined = headers.get("set-cookie");
+  return combined ? combined.split(/,(?=\s*[^;,=]+=[^;,]+)/) : [];
+}
+
+class SessionClient {
+  constructor() {
+    this.cookies = new Map();
+  }
+
+  cookieHeader() {
+    return Array.from(this.cookies, ([name, value]) => `${name}=${value}`).join("; ");
+  }
+
+  saveCookies(headers) {
+    for (const cookie of readSetCookies(headers)) {
+      const pair = cookie.split(";", 1)[0];
+      const separator = pair.indexOf("=");
+      if (separator > 0) this.cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+    }
+  }
+
+  async request(url, options = {}) {
+    let currentUrl = url;
+    let method = options.method || "GET";
+    let body = options.body;
+    for (let redirect = 0; redirect < 6; redirect += 1) {
+      const response = await fetch(currentUrl, {
+        ...options,
+        method,
+        body,
+        redirect: "manual",
+        headers: {
+          ...defaultHeaders,
+          ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+          ...(this.cookies.size ? { Cookie: this.cookieHeader() } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      this.saveCookies(response.headers);
+      if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+      const location = response.headers.get("location");
+      if (!location) return response;
+      currentUrl = new URL(location, currentUrl).toString();
+      if (response.status === 303 || (response.status >= 300 && response.status <= 303)) {
+        method = "GET";
+        body = undefined;
+      }
+    }
+    throw new Error("Nucleus returned too many redirects");
+  }
+}
+
+function formDataFromLogin(html, credentials, target) {
+  const $ = cheerio.load(html);
+  const form = $("form").has('input[type="password"]').first();
+  if (!form.length) throw new Error("Nucleus login form not found");
+  const data = new URLSearchParams();
+  form.find("input[name]").each((_, input) => data.set($(input).attr("name"), $(input).attr("value") || ""));
+  const emailInput = form.find('input[type="email"], input[name*="email" i], input[name*="login" i]').first();
+  const passwordInput = form.find('input[type="password"]').first();
+  if (!emailInput.attr("name") || !passwordInput.attr("name")) throw new Error("Nucleus login fields not found");
+  data.set(emailInput.attr("name"), credentials.email);
+  data.set(passwordInput.attr("name"), credentials.password);
+  return { action: new URL(form.attr("action") || "/login", target).toString(), data };
+}
+
+async function login(client, credentials, target) {
+  const loginResponse = await client.request(`${target}/login`);
+  const loginHtml = await loginResponse.text();
+  const { action, data } = formDataFromLogin(loginHtml, credentials, target);
+  const response = await client.request(action, { method: "POST", body: data.toString() });
+  const html = await response.text();
+  if (response.url.includes("/login") || /input[^>]+type=["']password/i.test(html)) {
+    throw new Error("Nucleus authentication failed");
+  }
+}
+
+function buildOrdersUrl(baseUrl, companyId, filters, pageNumber) {
+  const url = new URL(baseUrl);
+  const range = currentMonthRange();
+  url.searchParams.set("company_id", companyId);
+  url.searchParams.set("page", String(pageNumber));
+  url.searchParams.set("date_de", formatQueryDate(filters.dateFrom || range.from));
+  url.searchParams.set("date_ate", formatQueryDate(filters.dateTo || range.to));
+  if (filters.userId) url.searchParams.set("user_id", filters.userId);
+  return url.toString();
+}
+
+function parseOrders(html) {
+  const $ = cheerio.load(html);
+  const rows = [];
+  $("table tbody tr").each((_, row) => {
+    const cells = $(row).find("td").map((__, cell) => $(cell).text().trim()).get();
+    if (!cells.length) return;
+    const companyHref = $(row).find('a[href*="/crm/companies/"]').attr("href") || "";
+    rows.push({
+      id: cells[0],
+      clientId: companyHref.match(/\/crm\/companies\/(\d+)/)?.[1],
+      client: cells[1], name: cells[2], version: cells[3], order: cells[4],
+      technology: cells[5], thickness: cells[6], type: cells[7], createdAt: cells[8], work: cells[9],
+      status: "", label: $(row).text().trim(),
+    });
+  });
+  const pages = $("a[href*='page=']").map((_, link) => Number(new URL($(link).attr("href"), "https://studiolaser.nucleusapp.com.br").searchParams.get("page")) || 0).get();
+  return { rows, totalPages: Math.max(1, ...pages) };
+}
+
+async function extractCompany(client, baseUrl, company, filters, maxPages) {
+  const rows = [];
+  const seen = new Set();
+  let totalPages = 1;
+  let pagesProcessed = 0;
+  for (let page = 1; page <= maxPages && page <= totalPages; page += 1) {
+    const response = await client.request(buildOrdersUrl(baseUrl, company.id, filters, page));
+    if (!response.ok) throw new Error(`Nucleus orders returned HTTP ${response.status}`);
+    const parsed = parseOrders(await response.text());
+    pagesProcessed += 1;
+    totalPages = Math.max(totalPages, parsed.totalPages);
+    for (const row of parsed.rows) {
+      const key = `${row.id}:${row.work}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        rows.push({ ...row, companyId: company.id, companyName: company.name });
+      }
+    }
+    if (!parsed.rows.length) break;
+  }
+  return { rows, pagesProcessed, totalPages };
+}
+
+async function extractStatus(client, baseUrl, row, filters) {
+  const url = new URL(baseUrl);
+  url.searchParams.set("os_id", normalizeId(row.id));
+  url.searchParams.set("company_id", "");
+  url.searchParams.set("date_de", "");
+  url.searchParams.set("date_ate", "");
+  if (filters.userId) url.searchParams.set("user_id", filters.userId);
+  const response = await client.request(url.toString());
+  if (!response.ok) return "";
+  const $ = cheerio.load(await response.text());
+  const directStage = $("td[id^='etapa-atual-os-']").first().text().trim();
+  if (directStage) return directStage;
+  let status = "";
+  $("table thead th").each((index, header) => {
+    const label = $(header).text().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (!status && (label.includes("etapa") || label.includes("status"))) status = $("table tbody tr").first().find("td").eq(index).text().trim();
+  });
+  return status;
+}
+
+async function mapWithConcurrency(items, concurrency, callback) {
+  const results = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await callback(items[index]);
+    }
+  }));
+  return results;
+}
+
+export async function extractWithHttp(credentials, filters, config) {
+  const client = new SessionClient();
+  await login(client, credentials, config.target);
+  const companies = filters.clientId ? nucleusCompanies.filter((company) => company.id === String(filters.clientId)) : nucleusCompanies;
+  const extracted = await mapWithConcurrency(companies, config.companyConcurrency, (company) => extractCompany(client, config.ordersUrl, company, filters, config.maxPages));
+  const orders = extracted.flatMap((result) => result.rows);
+  const pagesProcessed = extracted.reduce((sum, result) => sum + result.pagesProcessed, 0);
+  const totalPages = extracted.reduce((sum, result) => sum + result.totalPages, 0);
+  if (filters.source === "closed") return { rows: orders.filter(isClosedRow), pagesProcessed, totalPages, stagesProcessed: 0, stageErrors: 0 };
+  const activeOrders = orders.filter((row) => !isClosedRow(row));
+  const statuses = await mapWithConcurrency(activeOrders, config.statusConcurrency, (row) => extractStatus(client, config.activeUrl, row, filters));
+  const statusById = new Map();
+  activeOrders.forEach((row, index) => { if (statuses[index]) statusById.set(normalizeId(row.id), statuses[index]); });
+  const rows = orders.map((row) => ({ ...row, status: statusById.get(normalizeId(row.id)) || row.status || "Não localizado no fluxo" })).filter((row) => filters.source !== "active" || !isClosedRow(row));
+  return { rows, pagesProcessed, totalPages, stagesProcessed: statuses.filter(Boolean).length, stageErrors: statuses.filter((status) => !status).length };
+}
