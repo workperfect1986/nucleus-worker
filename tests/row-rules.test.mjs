@@ -5,5 +5,7 @@ import { isClosedRow } from "../services/nucleus-worker/row-rules.mjs";
 test("does not send closed orders to stage lookup", () => {
   assert.equal(isClosedRow({ label: "OS 123 Encerrado" }), true);
   assert.equal(isClosedRow({ status: "Encerrado" }), true);
+  assert.equal(isClosedRow({ status: "Finalizado" }), true);
+  assert.equal(isClosedRow({ status: "Concluído" }), true);
   assert.equal(isClosedRow({ label: "OS 123 Em produção" }), false);
 });

@@ -22,7 +22,7 @@ const getReportSortValue = (order: WorkOrder, key: ReportSortKey) => {
 
 export default function ReportPageClient() {
   const snapshot = useSyncExternalStore(subscribeDashboardSnapshot, loadDashboardSnapshot, () => null) as DashboardSnapshot | null;
-  const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>("active");
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState("Todos os tipos");
   const [isGenerating, setIsGenerating] = useState(false);

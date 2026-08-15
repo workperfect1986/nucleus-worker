@@ -1,3 +1,7 @@
 export function isClosedRow(row) {
-  return /encerrado/i.test(`${row.label || ""} ${row.status || ""}`);
+  const statusText = `${row.finalizado || ""} ${row.label || ""} ${row.status || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return /encerrad|finalizad|concluid/.test(statusText);
 }
