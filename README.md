@@ -40,13 +40,9 @@ Gere um domínio público e confirme que `/api/health` retorna `worker: "ok"` an
 
 ### Opção avançada: serviços separados
 
-O repositório está preparado como um monorepo com dois serviços e Dockerfiles separados.
+Use esta opção somente se o worker precisar de escala ou ciclo de deploy independente. O dashboard e o worker continuam no mesmo repositório GitHub, mas são configurados como dois serviços no Railway.
 
-### 1. Envie o projeto para um repositório GitHub
-
-Conecte esse repositório a um novo projeto no Railway.
-
-### 2. Crie o serviço privado `https://github.com/workperfect1986/nucleus-worker`
+#### Serviço privado `nucleus-worker`
 
 - Nome do serviço: `nucleus-worker`
 - Source: o mesmo repositório GitHub
@@ -67,7 +63,7 @@ RAILWAY_SHM_SIZE_BYTES=536870912
 
 As URLs do Nucleus já possuem valores seguros como padrão. A URL de ordens é consultada por empresa usando o catálogo em `companies.mjs`; só defina `NUCLEUS_URL`, `NUCLEUS_ORDERS_URL`, `NUCLEUS_ACTIVE_URL` ou `NUCLEUS_PRODUCTION_URL` se precisar substituí-las.
 
-### 3. Crie o serviço público `dashboard`
+#### Serviço público `dashboard`
 
 - Nome do serviço: `dashboard`
 - Source: o mesmo repositório GitHub
@@ -82,7 +78,7 @@ NUCLEUS_WORKER_INTERNAL_URL=http://${{nucleus-worker.RAILWAY_PRIVATE_DOMAIN}}:87
 
 Depois do deploy, abra **Settings → Networking → Generate Domain** somente no serviço `dashboard`.
 
-### 4. Validação
+#### Validação
 
 - Dashboard: `https://SEU-DOMINIO.up.railway.app/api/health`
 - Worker: use a aba de deploy do serviço e confirme o healthcheck `/health`.
