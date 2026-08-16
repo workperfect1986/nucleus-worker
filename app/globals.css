@@ -501,11 +501,14 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .app-shell .notice.partial { border-color:#594824; background:#2a2317; color:#e9c77e; }
 .app-shell .frost-stats { grid-template-columns:repeat(4,minmax(0,1fr)); gap:11px; margin-bottom:11px; border:0; background:transparent; }
 .app-shell .stat-card { min-height:132px; padding:16px; border:1px solid var(--line); border-radius:13px; background:linear-gradient(150deg,rgba(20,28,37,.97),rgba(14,20,27,.97)); position:relative; overflow:hidden; }
-.app-shell .stat-card.attention-card { border-color:#51452e; background:linear-gradient(150deg,rgba(44,36,24,.74),rgba(18,22,25,.97)); }
+.app-shell .stat-card.period-card { border-color:#6a5528; background:linear-gradient(150deg,rgba(39,32,21,.72),rgba(18,22,25,.97)); }
 .app-shell .stat-label { font-size:10px; letter-spacing:.75px; }
 .app-shell .stat-card > strong { margin:18px 0 8px; font-size:31px; font-weight:720; }
 .app-shell .stat-card small { font-size:11px; line-height:1.4; }
-.app-shell .attention-card small { color:#d9bd82; }
+.app-shell .period-card .stat-label { color:#8495a0; }
+.app-shell .period-card .stat-icon { color:#f0c768; border-color:#f0c768; }
+.app-shell .period-card .period-value { margin-top:20px; overflow:hidden; color:#f4f6f7; font-size:clamp(18px,1.72vw,27px); letter-spacing:-1px; line-height:1.1; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell .period-card small { display:block; overflow:hidden; color:#e8c567; text-overflow:ellipsis; white-space:nowrap; }
 .app-shell .stat-icon { width:22px; height:22px; border-radius:6px; }
 .app-shell .production-card { box-shadow:none; }
 .app-shell .card-refresh { border-radius:6px; }
@@ -627,6 +630,7 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
   .app-shell .stat-card { min-height:112px; padding:13px; }
   .app-shell .stat-label { font-size:9px; }
   .app-shell .stat-card > strong { margin:15px 0 7px; font-size:26px; }
+  .app-shell .period-card .period-value { font-size:clamp(15px,4.6vw,22px); letter-spacing:-.7px; }
   .app-shell .stat-card small { font-size:10px; }
   .app-shell .cm2-value { font-size:22px !important; }
   .mobile-insights-toggle { width:100%; min-height:44px; margin:12px 0 8px; padding:0 12px; display:flex; align-items:center; justify-content:space-between; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--accent-strong); font-size:11px; font-weight:700; }

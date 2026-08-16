@@ -308,7 +308,9 @@ export default function Home() {
   const scopedOrders = client === "Todos os clientes" ? ordersInPeriod : ordersInPeriod.filter((order) => order.client === client);
   const activeCount = scopedOrders.filter((order) => !order.isClosed).length;
   const closedCount = scopedOrders.filter((order) => order.isClosed).length;
-  const waitingCount = scopedOrders.filter((order) => !order.isClosed && order.status.toLowerCase().includes("aguardando")).length;
+  const periodStart = dateFrom.split("-").reverse().join("/");
+  const periodEnd = dateTo.split("-").reverse().join("/");
+  const periodClient = client === "Todos os clientes" ? "Todos Clientes" : client;
   const activeOrders = scopedOrders.filter((order) => !order.isClosed);
   const clientBreakdown = Array.from(activeOrders.reduce((counts, order) => {
     counts.set(order.client, (counts.get(order.client) ?? 0) + 1);
@@ -354,7 +356,7 @@ export default function Home() {
           {notice && <div className={`notice ${noticeError ? "error" : syncPartial ? "partial" : ""}`} role="status" aria-live="polite"><span>{noticeError ? "!" : syncPartial ? "◷" : "✓"}</span>{notice}</div>}
           <div className="stats-grid frost-stats">
             <article className="stat-card"><div className="stat-label">Em andamento <span className="stat-icon green">↗</span></div><strong>{activeCount}</strong><small>Ordens ativas no período</small></article>
-            <article className="stat-card attention-card"><div className="stat-label">Aguardando <span className="stat-icon amber">!</span></div><strong>{waitingCount}</strong><small>Requerem acompanhamento</small></article>
+            <article className="stat-card period-card"><div className="stat-label">Período de apuração <span className="stat-icon amber">!</span></div><strong className="period-value">{periodStart} - {periodEnd}</strong><small title={periodClient}>{periodClient}</small></article>
             <article className="stat-card"><div className="stat-label">Encerradas <span className="stat-icon blue">✓</span></div><strong>{closedCount}</strong><small>Concluídas no período</small></article>
             <article className="stat-card production-card"><div className="stat-label">Produção do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={() => void refreshProductionStats()} disabled={cm2Loading} aria-label="Atualizar produção do usuário" title="Atualizar produção do usuário"><span>↻</span></button></div><strong className="cm2-value">{cm2Loading && totalCm2 === null ? "—" : totalCm2 === null ? "—" : formatSquareMeters(totalCm2)}{totalCm2 !== null && <em> m²</em>}</strong><small className={cm2Error ? "metric-error" : ""}>{cm2Error ? cm2Error : cm2LastSync ? `Nucleus · atualizado às ${formatTime(cm2LastSync)}` : totalCm2 !== null ? "Valor salvo do Nucleus" : password ? "Carregando produção..." : "Entre novamente para atualizar"}</small></article>
           </div>

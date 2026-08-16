@@ -50,6 +50,9 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(page, /normalizeWorkOrders/);
   assert.match(page, /Dados carregados/);
   assert.match(page, /Ordens por cliente/);
+  assert.match(page, /Período de apuração/);
+  assert.match(page, /periodStart.*periodEnd/);
+  assert.doesNotMatch(page, />Aguardando <span className="stat-icon/);
   assert.match(page, /className="site-header"/);
   assert.match(page, /className="header-nav"/);
   assert.doesNotMatch(page, /className="sidebar"/);
