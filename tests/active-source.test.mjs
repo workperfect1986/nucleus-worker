@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { activeVersionKey, buildActiveUrl, mergeActiveOrders } from "../services/nucleus-worker/active-source.mjs";
 
-test("active flow ignores the selected creation period", () => {
+test("active flow applies the selected creation period at source", () => {
   const url = new URL(buildActiveUrl("https://nucleus.example/fluxo_servicos?date_de=01%2F08%2F2026", "17110", {
     dateFrom: "2026-08-01",
     dateTo: "2026-08-31",
@@ -11,8 +11,8 @@ test("active flow ignores the selected creation period", () => {
 
   assert.equal(url.searchParams.get("company_id"), "17110");
   assert.equal(url.searchParams.get("page"), "3");
-  assert.equal(url.searchParams.get("date_de"), "");
-  assert.equal(url.searchParams.get("date_ate"), "");
+  assert.equal(url.searchParams.get("date_de"), "01/08/2026");
+  assert.equal(url.searchParams.get("date_ate"), "31/08/2026");
 });
 
 test("keeps old active rows and enriches matching period details", () => {

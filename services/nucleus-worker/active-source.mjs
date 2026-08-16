@@ -2,12 +2,18 @@ function normalizeId(value) {
   return String(value || "").replace(/^#/, "").trim();
 }
 
+function formatQueryDate(value) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 export function buildActiveUrl(baseUrl, companyId, filters, pageNumber) {
   const url = new URL(baseUrl);
   url.searchParams.set("company_id", companyId);
   url.searchParams.set("page", String(pageNumber));
-  url.searchParams.set("date_de", "");
-  url.searchParams.set("date_ate", "");
+  url.searchParams.set("date_de", formatQueryDate(filters.dateFrom));
+  url.searchParams.set("date_ate", formatQueryDate(filters.dateTo));
   url.searchParams.set("date_despacho_de", "");
   url.searchParams.set("date_despacho_ate", "");
   if (filters.userId) url.searchParams.set("user_id", filters.userId);

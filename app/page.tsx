@@ -202,7 +202,7 @@ export default function Home() {
       setOrders(nextOrders);
       setLastSync(new Date());
       persistDashboardSnapshot(nextOrders, dateFrom, dateTo, email);
-      setNotice(`Sincronização concluída: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}${formatExtractionMetrics(payload.metrics)}.`);
+      setNotice(`Sincronização concluída: ${payload.orders?.length ?? 0} trabalhos do período em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}${formatExtractionMetrics(payload.metrics)}.`);
       setNoticeError(false);
       setSyncPartial(Boolean(payload.stageErrors));
       setAuthenticated(true);
@@ -237,7 +237,7 @@ export default function Home() {
         : "Todos os clientes");
       setLastSync(new Date());
       persistDashboardSnapshot(nextOrders, requestDateFrom, requestDateTo, email);
-       setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}${formatExtractionMetrics(payload.metrics)}.`);
+       setNotice(`Dados atualizados: ${payload.orders?.length ?? 0} trabalhos do período em ${payload.pagesProcessed ?? 0} páginas e ${payload.stagesProcessed ?? 0} etapas consultadas${payload.stageErrors ? ` (${payload.stageErrors} indisponíveis)` : ""}${formatExtractionMetrics(payload.metrics)}.`);
       setNoticeError(false);
       setSyncPartial(Boolean(payload.stageErrors));
     } catch (error) {

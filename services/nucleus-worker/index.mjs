@@ -137,8 +137,8 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
     // Keep the empty user filter from both source URLs unless the caller
     // explicitly selected a user.
     if (filters.userId) filteredPageUrl.searchParams.set("user_id", filters.userId);
-    filteredPageUrl.searchParams.set("date_de", source === "active" ? "" : formatQueryDate(effectiveDateFrom));
-    filteredPageUrl.searchParams.set("date_ate", source === "active" ? "" : formatQueryDate(effectiveDateTo));
+    filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
+    filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
     if (source === "active") {
       filteredPageUrl.searchParams.set("date_despacho_de", "");
       filteredPageUrl.searchParams.set("date_despacho_ate", "");
