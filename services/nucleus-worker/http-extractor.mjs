@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { buildActiveUrl, mergeActiveOrders } from "./active-source.mjs";
+import { activeVersionKey, buildActiveUrl, mergeActiveOrders } from "./active-source.mjs";
 import { nucleusCompanies } from "./companies.mjs";
 import { isClosedRow } from "./row-rules.mjs";
 
@@ -230,10 +230,11 @@ async function extractActiveCompany(client, baseUrl, company, filters, maxPages)
     pagesProcessed += 1;
     totalPages = Math.max(totalPages, parsed.totalPages, page);
     for (const row of parsed.rows) {
-      const key = normalizeId(row.id);
-      if (key && !seen.has(key)) {
+      const id = normalizeId(row.id);
+      const key = activeVersionKey(row);
+      if (id && !seen.has(key)) {
         seen.add(key);
-        rows.push({ ...row, companyId: company.id, companyName: company.name });
+        rows.push({ ...row, companyId: company.id, companyName: company.name, isClosed: false });
       }
     }
     if (!parsed.rows.length) break;
@@ -308,7 +309,7 @@ export async function extractWithHttp(credentials, filters, config) {
   const activeOrders = mergeActiveOrders(activeExtracted.flatMap((result) => result.rows), orders);
   const statuses = await mapWithConcurrency(activeOrders, config.statusConcurrency, async (row) => {
     if (row.status) return row.status;
-    const key = `${cacheNamespace}:${normalizeId(row.id)}:${filters.userId || ""}`;
+    const key = `${cacheNamespace}:${activeVersionKey(row)}:${filters.userId || ""}`;
     const cached = statusCache.get(key);
     if (cached && Date.now() - cached.updatedAt < defaultStatusCacheTtlMs) {
       metrics.statusCacheHits += 1;
@@ -319,9 +320,9 @@ export async function extractWithHttp(credentials, filters, config) {
     statusCache.set(key, { status, updatedAt: Date.now() });
     return status;
   });
-  const statusById = new Map();
-  activeOrders.forEach((row, index) => { if (statuses[index]) statusById.set(normalizeId(row.id), statuses[index]); });
-  const enrichedActiveOrders = activeOrders.map((row) => ({ ...row, status: statusById.get(normalizeId(row.id)) || row.status || "Não localizado no fluxo" }));
+  const statusByVersion = new Map();
+  activeOrders.forEach((row, index) => { if (statuses[index]) statusByVersion.set(activeVersionKey(row), statuses[index]); });
+  const enrichedActiveOrders = activeOrders.map((row) => ({ ...row, status: statusByVersion.get(activeVersionKey(row)) || row.status || "Não localizado no fluxo" }));
   const rows = filters.source === "active" ? enrichedActiveOrders : [...orders.filter(isClosedRow), ...enrichedActiveOrders];
   const activePagesProcessed = activeExtracted.reduce((sum, result) => sum + result.pagesProcessed, 0);
   const activeTotalPages = activeExtracted.reduce((sum, result) => sum + result.totalPages, 0);

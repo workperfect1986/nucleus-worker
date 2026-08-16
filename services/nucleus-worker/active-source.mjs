@@ -14,13 +14,22 @@ export function buildActiveUrl(baseUrl, companyId, filters, pageNumber) {
   return url.toString();
 }
 
-const orderKey = (row) => `${row.companyId || row.clientId || ""}:${normalizeId(row.id)}`;
+export function activeVersionKey(row) {
+  return `${normalizeId(row.id)}:${String(row.version || "").trim()}:${String(row.order || "").trim()}`;
+}
+
+const orderKey = (row, includeVersion = true) => `${row.companyId || row.clientId || ""}:${normalizeId(row.id)}${includeVersion ? `:${String(row.version || "").trim()}` : ""}`;
 
 export function mergeActiveOrders(activeOrders, orderDetails) {
-  const detailsByKey = new Map(orderDetails.map((row) => [orderKey(row), row]));
-  return activeOrders.map((row) => ({
-    ...(detailsByKey.get(orderKey(row)) || {}),
-    ...row,
-    status: row.status || detailsByKey.get(orderKey(row))?.status || "Não localizado no fluxo",
-  }));
+  const detailsByVersion = new Map(orderDetails.map((row) => [orderKey(row), row]));
+  const detailsByOrder = new Map(orderDetails.map((row) => [orderKey(row, false), row]));
+  return activeOrders.map((row) => {
+    const details = detailsByVersion.get(orderKey(row)) || detailsByOrder.get(orderKey(row, false));
+    return {
+      ...(details || {}),
+      ...row,
+      status: row.status || details?.status || "Não localizado no fluxo",
+      isClosed: false,
+    };
+  });
 }

@@ -1,7 +1,7 @@
 import http from "node:http";
 import { chromium } from "playwright";
 import { nucleusCompanies } from "./companies.mjs";
-import { mergeActiveOrders } from "./active-source.mjs";
+import { activeVersionKey, mergeActiveOrders } from "./active-source.mjs";
 import { extractWithHttp } from "./http-extractor.mjs";
 import { isClosedRow } from "./row-rules.mjs";
 
@@ -176,7 +176,7 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
       };
     }), source);
 
-    const selectedRows = source === "orders" ? pageRows : pageRows.filter((row) => !isClosedRow(row));
+    const selectedRows = source === "orders" ? pageRows : pageRows.map((row) => ({ ...row, isClosed: false }));
     for (const row of selectedRows) {
       const key = JSON.stringify(row);
       if (!seen.has(key)) { seen.add(key); rows.push(row); }
@@ -249,19 +249,19 @@ async function extractWithBrowser(credentials, filters = {}) {
     const activeSource = await extractByCompanies(context, filters, activeUrl, "active");
     const activeOrders = mergeActiveOrders(activeSource.rows, orders);
     const recoveredFlowRows = await recoverFlowRows(context, activeOrders.filter((row) => !row.status), filters);
-    const statusById = new Map(activeOrders.filter((row) => row.status).map((row) => [normalizeOrderId(row.id), row.status]));
-    recoveredFlowRows.forEach((row) => statusById.set(normalizeOrderId(row.id), row.status));
+    const statusByVersion = new Map(activeOrders.filter((row) => row.status).map((row) => [activeVersionKey(row), row.status]));
+    recoveredFlowRows.forEach((row) => statusByVersion.set(activeVersionKey(row), row.status));
     const enrichedActiveOrders = activeOrders.map((row) => ({
       ...row,
-      status: statusById.get(normalizeOrderId(row.id)) || row.status || "Não localizado no fluxo",
+      status: statusByVersion.get(activeVersionKey(row)) || row.status || "Não localizado no fluxo",
     }));
     const rows = source === "active" ? enrichedActiveOrders : [...orders.filter(isClosedRow), ...enrichedActiveOrders];
     return {
       rows,
       pagesProcessed: ordersSource.pagesProcessed + activeSource.pagesProcessed,
       totalPages: ordersSource.totalPages + activeSource.totalPages,
-      stagesProcessed: activeOrders.filter((row) => statusById.has(normalizeOrderId(row.id))).length,
-      stageErrors: activeOrders.filter((row) => !statusById.has(normalizeOrderId(row.id))).length,
+      stagesProcessed: activeOrders.filter((row) => statusByVersion.has(activeVersionKey(row))).length,
+      stageErrors: activeOrders.filter((row) => !statusByVersion.has(activeVersionKey(row))).length,
     };
   } finally {
     await context.close();
