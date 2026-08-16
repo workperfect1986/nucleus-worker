@@ -11,7 +11,7 @@ const formatDate = (value: string) => value.split("-").reverse().join("/");
 const PAGE_SIZE = 25;
 
 type ReportStatusFilter = "all" | "active" | "closed";
-type ReportSortKey = "id" | "client" | "work" | "technology" | "type" | "createdAt" | "status";
+type ReportSortKey = "id" | "client" | "work" | "technology" | "createdAt" | "status";
 type SortDirection = "asc" | "desc";
 
 const getReportSortValue = (order: WorkOrder, key: ReportSortKey) => {
@@ -25,15 +25,20 @@ export default function ReportPageClient() {
   const snapshot = useSyncExternalStore(subscribeDashboardSnapshot, loadDashboardSnapshot, () => null) as DashboardSnapshot | null;
   const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>("active");
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
-  const [typeFilter, setTypeFilter] = useState("Todos os tipos");
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [sortKey, setSortKey] = useState<ReportSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [pagination, setPagination] = useState({ key: "", page: 1 });
 
-  const clients = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.client) ?? [])).sort(), [snapshot]);
-  const workTypes = useMemo(() => Array.from(new Set(snapshot?.orders.map((order) => order.type) ?? [])).sort(), [snapshot]);
+  const snapshotOrdersInPeriod = useMemo(() => snapshot?.orders.filter((order) => {
+    const orderDate = order.createdAt.split(" às ")[0].split("/").reverse().join("-");
+    return (!snapshot.dateFrom || orderDate >= snapshot.dateFrom) && (!snapshot.dateTo || orderDate <= snapshot.dateTo);
+  }) ?? [], [snapshot]);
+  const clients = useMemo(() => Array.from(new Set(snapshotOrdersInPeriod.map((order) => order.client))).sort(), [snapshotOrdersInPeriod]);
+  const clientFilteredOrders = useMemo(() => selectedClients.length === 0
+    ? snapshotOrdersInPeriod
+    : snapshotOrdersInPeriod.filter((order) => selectedClients.includes(order.client)), [selectedClients, snapshotOrdersInPeriod]);
 
   const toggleSort = (nextKey: ReportSortKey) => {
     if (sortKey === nextKey) {
@@ -50,16 +55,13 @@ export default function ReportPageClient() {
       return [] as WorkOrder[];
     }
 
-    return snapshot.orders.filter((order) => {
+    return clientFilteredOrders.filter((order) => {
       const matchesStatus = statusFilter === "all"
         ? true
         : statusFilter === "active"
           ? !order.isClosed
           : order.isClosed;
-      const matchesClient = selectedClients.length === 0 || selectedClients.includes(order.client);
-      const matchesType = typeFilter === "Todos os tipos" || order.type === typeFilter;
-
-      return matchesStatus && matchesClient && matchesType;
+      return matchesStatus;
     }).sort((left, right) => {
       const leftValue = getReportSortValue(left, sortKey);
       const rightValue = getReportSortValue(right, sortKey);
@@ -68,9 +70,9 @@ export default function ReportPageClient() {
         : String(leftValue).localeCompare(String(rightValue), "pt-BR", { numeric: true, sensitivity: "base" });
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [selectedClients, snapshot, sortDirection, sortKey, statusFilter, typeFilter]);
+  }, [clientFilteredOrders, snapshot, sortDirection, sortKey, statusFilter]);
   const totalPages = Math.max(1, Math.ceil(allFilteredOrders.length / PAGE_SIZE));
-  const pageKey = `${JSON.stringify(selectedClients)}|${snapshot ? "loaded" : "empty"}|${sortDirection}|${sortKey}|${statusFilter}|${typeFilter}`;
+  const pageKey = `${JSON.stringify(selectedClients)}|${snapshot ? "loaded" : "empty"}|${sortDirection}|${sortKey}|${statusFilter}`;
   const currentPage = pagination.key === pageKey ? Math.min(pagination.page, totalPages) : 1;
   const setCurrentPage = (nextPage: number | ((page: number) => number)) => {
     setPagination((current) => {
@@ -101,8 +103,8 @@ export default function ReportPageClient() {
       : [...current, client]);
   };
 
-  const activeCount = allFilteredOrders.filter((order) => !order.isClosed).length;
-  const closedCount = allFilteredOrders.filter((order) => order.isClosed).length;
+  const activeCount = clientFilteredOrders.filter((order) => !order.isClosed).length;
+  const closedCount = clientFilteredOrders.filter((order) => order.isClosed).length;
   const goToDashboard = () => window.location.assign("/");
 
   const handleGeneratePdf = async () => {
@@ -156,7 +158,7 @@ export default function ReportPageClient() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(103, 200, 173);
-        doc.text(`Filtrado por ${statusFilter === "all" ? "todos os status" : statusFilter === "active" ? "trabalhos em andamento" : "trabalhos encerrados"} · ${clientLabel} · ${typeFilter}`, margin + 18, 86);
+        doc.text(`Filtrado por ${statusFilter === "all" ? "todos os status" : statusFilter === "active" ? "trabalhos em andamento" : "trabalhos encerrados"} · ${clientLabel}`, margin + 18, 86);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
@@ -168,8 +170,7 @@ export default function ReportPageClient() {
         doc.setFontSize(10);
         doc.text("Cliente", margin + 18, yStart + 16);
         doc.text("Trabalho", margin + 160, yStart + 16);
-        doc.text("Tipo", margin + 360, yStart + 16);
-        doc.text("Tecnologia", margin + 460, yStart + 16);
+        doc.text("Tecnologia", margin + 360, yStart + 16);
         doc.text("Criado em", margin + 585, yStart + 16);
         doc.text("Status", pageWidth - margin - 86, yStart + 16);
       };
@@ -178,7 +179,6 @@ export default function ReportPageClient() {
         { key: "id", width: 46, align: "left" as const },
         { key: "client", width: 132, align: "left" as const },
         { key: "work", width: 176, align: "left" as const },
-        { key: "type", width: 88, align: "left" as const },
         { key: "technology", width: 92, align: "left" as const },
         { key: "createdAt", width: 94, align: "left" as const },
         { key: "status", width: 82, align: "left" as const },
@@ -200,7 +200,6 @@ export default function ReportPageClient() {
           `#${row.id}`,
           row.client,
           row.work,
-          row.type,
           row.technology,
           row.createdAt.split(" às ")[0],
           row.isClosed ? "Encerrado" : row.status,
@@ -244,7 +243,7 @@ export default function ReportPageClient() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.setTextColor(175, 187, 195);
-        doc.text("Ajuste as opções de cliente, tipo ou status para gerar um novo relatório.", margin + 18, y + 52);
+        doc.text("Ajuste as opções de cliente ou status para gerar um novo relatório.", margin + 18, y + 52);
       } else {
         filteredOrders.forEach((order, index) => {
           if (y + rowHeight > pageHeight - 40) {
@@ -276,7 +275,7 @@ export default function ReportPageClient() {
         <aside className="sidebar">
           <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
           <nav className="main-nav" aria-label="Navegação principal"><button type="button" className="nav-item" onClick={goToDashboard}><span>◆</span> Visão geral</button><a href="/relatorios" className="nav-item active" aria-current="page"><span>◇</span> Relatórios</a></nav>
-          <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshot?.orders.length ?? 0} ordens · {snapshot?.lastSync ? `atualizado às ${new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "aguardando atualização"}</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
+          <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens no período · {snapshot?.lastSync ? `atualizado às ${new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "aguardando atualização"}</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
         </aside>
         <section className="workspace">
           <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><span className="last-sync"><b className="freshness-dot" />Dados atualizados <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
@@ -289,11 +288,11 @@ export default function ReportPageClient() {
               <article className="stat-card"><div className="stat-label">Clientes <span className="stat-icon amber">◷</span></div><strong>{selectedClients.length || clients.length}</strong><small>{clientLabel}</small></article>
             </div>
             <section className="orders-section">
-              <div className="section-heading"><div><h2>Ordens do relatório</h2><p>Dados sincronizados do Nucleus.</p></div><div className="report-actions"><button className="secondary-button" type="button" onClick={() => { setStatusFilter("all"); setSelectedClients([]); setTypeFilter("Todos os tipos"); }}>Limpar filtros</button></div></div>
-              <div className="tabs" role="tablist"><button className={statusFilter === "all" ? "selected" : ""} onClick={() => setStatusFilter("all")} role="tab" aria-selected={statusFilter === "all"}>Todos <span>{snapshot?.orders.length ?? 0}</span></button><button className={statusFilter === "active" ? "selected" : ""} onClick={() => setStatusFilter("active")} role="tab" aria-selected={statusFilter === "active"}>Em andamento <span>{activeCount}</span></button><button className={statusFilter === "closed" ? "selected" : ""} onClick={() => setStatusFilter("closed")} role="tab" aria-selected={statusFilter === "closed"}>Encerrados <span>{closedCount}</span></button></div>
-               <div className="filters report-filters"><div className="client-selector"><span>Clientes</span><div className="client-options" role="group" aria-label="Filtrar clientes"><button className={`client-option ${selectedClients.length === 0 ? "selected" : ""}`} type="button" aria-pressed={selectedClients.length === 0} onClick={() => setSelectedClients([])}>Todos os clientes</button>{clients.map((client) => <button className={`client-option ${selectedClients.includes(client) ? "selected" : ""}`} type="button" aria-pressed={selectedClients.includes(client)} key={client} onClick={() => toggleClient(client)}>{client}</button>)}</div></div><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtrar tipo de trabalho"><option value="Todos os tipos">Todos os tipos</option>{workTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select><button className="primary-button report-generate-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}>{isGenerating ? "Gerando..." : "Gerar PDF"}</button></div>
-              <div className="table-wrap report-orders-table"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / Nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("type")}>Tipo <span>{sortIndicator("type")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th></tr></thead><tbody>{filteredOrders.map((order, index) => <tr key={`${order.id}-${order.work}-${index}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><span className="type-pill">{order.type}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td></tr>)}</tbody></table>{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
-              <div className="mobile-order-list report-mobile-order-list">{filteredOrders.map((order) => <article className="mobile-order-card" key={`report-mobile-${order.id}-${order.work}`}><div className="mobile-order-top"><strong className="order-id">#{order.id}</strong><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></div><h3>{order.client}</h3><p>{order.name}</p><dl><div><dt>Tipo</dt><dd>{order.type}</dd></div><div><dt>Criada em</dt><dd>{order.createdAt}</dd></div></dl><small>v{order.version} · pedido {order.order}</small></article>)}{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
+              <div className="section-heading"><div><h2>Ordens do relatório</h2><p>Dados sincronizados do Nucleus.</p></div><div className="report-actions"><button className="secondary-button" type="button" onClick={() => { setStatusFilter("all"); setSelectedClients([]); }}>Limpar filtros</button></div></div>
+              <div className="tabs" role="tablist"><button className={statusFilter === "all" ? "selected" : ""} onClick={() => setStatusFilter("all")} role="tab" aria-selected={statusFilter === "all"}>Todos <span>{clientFilteredOrders.length}</span></button><button className={statusFilter === "active" ? "selected" : ""} onClick={() => setStatusFilter("active")} role="tab" aria-selected={statusFilter === "active"}>Em andamento <span>{activeCount}</span></button><button className={statusFilter === "closed" ? "selected" : ""} onClick={() => setStatusFilter("closed")} role="tab" aria-selected={statusFilter === "closed"}>Encerrados <span>{closedCount}</span></button></div>
+               <div className="filters report-filters"><div className="client-selector"><span>Clientes</span><div className="client-options" role="group" aria-label="Filtrar clientes"><button className={`client-option ${selectedClients.length === 0 ? "selected" : ""}`} type="button" aria-pressed={selectedClients.length === 0} onClick={() => setSelectedClients([])}>Todos os clientes</button>{clients.map((client) => <button className={`client-option ${selectedClients.includes(client) ? "selected" : ""}`} type="button" aria-pressed={selectedClients.includes(client)} key={client} onClick={() => toggleClient(client)}>{client}</button>)}</div></div><button className="primary-button report-generate-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}>{isGenerating ? "Gerando..." : "Gerar PDF"}</button></div>
+              <div className="table-wrap report-orders-table"><table><thead><tr><th><button className="table-sort-button" onClick={() => toggleSort("id")}>Ordem <span>{sortIndicator("id")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("client")}>Cliente / Nome <span>{sortIndicator("client")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("createdAt")}>Criado em <span>{sortIndicator("createdAt")}</span></button></th><th><button className="table-sort-button" onClick={() => toggleSort("status")}>Status <span>{sortIndicator("status")}</span></button></th></tr></thead><tbody>{filteredOrders.map((order, index) => <tr key={`${order.id}-${order.work}-${index}`}><td><strong className="order-id">#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td><td><strong>{order.client}</strong><span>{order.name}</span></td><td><strong>{order.createdAt.split(" às ")[0]}</strong><span>{order.createdAt.split(" às ")[1]}</span></td><td><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></td></tr>)}</tbody></table>{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
+              <div className="mobile-order-list report-mobile-order-list">{filteredOrders.map((order) => <article className="mobile-order-card" key={`report-mobile-${order.id}-${order.work}`}><div className="mobile-order-top"><strong className="order-id">#{order.id}</strong><span className={`status-pill nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}><i />{order.isClosed ? "Encerrado" : order.status}</span></div><h3>{order.client}</h3><p>{order.name}</p><dl><div><dt>Criada em</dt><dd>{order.createdAt}</dd></div></dl><small>v{order.version} · pedido {order.order}</small></article>)}{filteredOrders.length === 0 && <div className="empty-state"><strong>Nenhuma ordem encontrada</strong><span>Ajuste os filtros ou sincronize os dados na dashboard.</span></div>}</div>
                <div className="table-footer"><span>Mostrando <strong>{filteredOrders.length}</strong> de <strong>{allFilteredOrders.length}</strong> ordens</span><div className="pagination" aria-label="Paginação do relatório"><button type="button" onClick={() => setCurrentPage((page) => page - 1)} disabled={currentPage === 1} aria-label="Página anterior">‹</button>{Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => <button type="button" key={page} className={page === currentPage ? "current" : ""} onClick={() => setCurrentPage(page)} aria-label={`Página ${page}`} aria-current={page === currentPage ? "page" : undefined}>{page}</button>)}<button type="button" onClick={() => setCurrentPage((page) => page + 1)} disabled={currentPage === totalPages} aria-label="Próxima página">›</button></div>{statusMessage ? <span className="report-status-message">{statusMessage}</span> : null}</div>
             </section>
           </div>
@@ -313,7 +312,7 @@ export default function ReportPageClient() {
       <div className="print-report-meta">
         <div><span>Período</span><strong>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)}` : "—"}</strong></div>
         <div><span>Gerado em</span><strong>{new Date().toLocaleString("pt-BR")}</strong></div>
-        <div><span>Filtros</span><strong>{clientLabel} · {typeFilter} · {statusFilter === "all" ? "Todos os status" : statusFilter === "active" ? "Em andamento" : "Encerrados"}</strong></div>
+        <div><span>Filtros</span><strong>{clientLabel} · {statusFilter === "all" ? "Todos os status" : statusFilter === "active" ? "Em andamento" : "Encerrados"}</strong></div>
       </div>
       <div className="print-report-summary">
         <div><span>Ordens no relatório</span><strong>{printableOrders.length}</strong></div>
@@ -323,11 +322,10 @@ export default function ReportPageClient() {
       </div>
       <div className="print-report-table-wrap">
         <table>
-           <thead><tr><th>Ordem</th><th>Cliente / Nome</th><th>Tipo</th><th>Criado em</th><th>Status</th></tr></thead>
+           <thead><tr><th>Ordem</th><th>Cliente / Nome</th><th>Criado em</th><th>Status</th></tr></thead>
           <tbody>{printableOrders.map((order) => <tr key={`print-${order.id}-${order.work}`}>
             <td><strong>#{order.id}</strong><small>v{order.version} · pedido {order.order}</small></td>
             <td><strong>{order.client}</strong><small>{order.name}</small></td>
-            <td>{order.type}</td>
             <td><strong>{order.createdAt.split(" às ")[0]}</strong><small>{order.createdAt.split(" às ")[1]}</small></td>
             <td><span className={`print-status nucleus-status-${getNucleusStatusTone(order.status, order.isClosed)}`}>{order.isClosed ? "Encerrado" : order.status}</span></td>
           </tr>)}</tbody>
