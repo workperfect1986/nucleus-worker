@@ -63,7 +63,11 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(reportPage, /window\.sessionStorage\.removeItem\(SESSION_KEY\)/);
   assert.match(reportPage, /<button className="header-user" type="button" onClick=\{logout\}/);
   assert.doesNotMatch(reportPage, /className="sidebar"/);
-  assert.match(page, /mobile-bottom-nav/);
+  assert.match(page, /mobile-menu-toggle/);
+  assert.match(page, /mobile-menu-panel/);
+  assert.doesNotMatch(page, /mobile-bottom-nav/);
+  assert.match(reportPage, /mobile-menu-toggle/);
+  assert.doesNotMatch(reportPage, /mobile-bottom-nav/);
   assert.match(page, /auth-preview/);
   const closedTable = page.slice(page.indexOf('{tab === "closed"'), page.indexOf('<div className="mobile-order-list">'));
   assert.match(closedTable, /Cliente \/ nome/);
@@ -82,6 +86,7 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(styles, /Frost authentication/);
   assert.match(styles, /Frost reports/);
   assert.match(styles, /height:100dvh; min-height:0; overflow:hidden/);
+  assert.match(styles, /period-card \.period-value.*display:grid/);
   assert.match(page, /className="modal-body"/);
   assert.match(page, /event\.key === "Escape"/);
   assert.match(layout, /Studio Laser · Visão operacional/);

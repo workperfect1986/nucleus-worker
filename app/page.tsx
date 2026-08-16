@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { clearDashboardSnapshot, loadDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
 import { normalizeWorkOrders, type RawWorkOrder, type WorkOrder } from "../lib/nucleus/normalize";
 import { getNucleusStatusTone } from "../lib/nucleus/status";
@@ -93,6 +92,7 @@ export default function Home() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [pagination, setPagination] = useState({ key: "", page: 1 });
   const [showMobileInsights, setShowMobileInsights] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [syncPartial, setSyncPartial] = useState(false);
 
   const persistDashboardSnapshot = (nextOrders: typeof orders, nextDateFrom: string, nextDateTo: string, nextEmail: string, nextTotalCm2 = totalCm2) => {
@@ -295,8 +295,14 @@ export default function Home() {
     setSyncPartial(false);
     clearDashboardSnapshot();
   };
-  const goToDashboard = () => window.location.assign("/");
-  const goToReports = () => window.location.assign("/relatorios");
+  const goToDashboard = () => {
+    setMobileMenuOpen(false);
+    window.location.assign("/");
+  };
+  const goToReports = () => {
+    setMobileMenuOpen(false);
+    window.location.assign("/relatorios");
+  };
 
   if (!authenticated) {
     return <main className="auth-shell">
@@ -361,18 +367,20 @@ export default function Home() {
       <header className="site-header">
         <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></button>
         <nav className="header-nav" aria-label="Navegação principal"><button className="header-nav-item active" type="button" onClick={goToDashboard} aria-current="page"><span>◆</span> Visão geral</button><button type="button" onClick={goToReports} className="header-nav-item"><span>◇</span> Relatórios</button></nav>
+        <button className={`mobile-menu-toggle ${mobileMenuOpen ? "open" : ""}`} type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-header-menu" aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}><span /><span /><span /></button>
         <div className="header-meta">
           <div className={`header-connection ${syncPartial ? "partial" : ""}`}><span className="status-pulse" /><div><strong>{syncPartial ? "Dados parciais" : "Dados carregados"}</strong><small>{ordersInPeriod.length} ordens · {lastSync ? formatTime(lastSync) : "aguardando"}</small></div></div>
           <button className="header-user" type="button" onClick={logout} aria-label={`Sair da conta de ${email}`}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair</small></span></button>
         </div>
       </header>
+      {mobileMenuOpen && <nav className="mobile-menu-panel" id="mobile-header-menu" aria-label="Menu mobile"><button type="button" className="active" onClick={goToDashboard} aria-current="page"><span>◆</span><span><strong>Visão geral</strong><small>Painel operacional</small></span></button><button type="button" onClick={goToReports}><span>◇</span><span><strong>Relatórios</strong><small>Filtros e exportação</small></span></button><button type="button" className="mobile-menu-logout" onClick={logout}><span>●</span><span><strong>Sair da conta</strong><small>{email}</small></span></button></nav>}
       <section className="workspace">
         <div className="content">
           <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · {client}</p></div><div className="page-actions"><a href="/relatorios" className="secondary-action"><span>↓</span> Relatório</a><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div></div>
           {notice && <div className={`notice ${noticeError ? "error" : syncPartial ? "partial" : ""}`} role="status" aria-live="polite"><span>{noticeError ? "!" : syncPartial ? "◷" : "✓"}</span>{notice}</div>}
           <div className="stats-grid frost-stats">
             <article className="stat-card"><div className="stat-label">Em andamento <span className="stat-icon green">↗</span></div><strong>{activeCount}</strong><small>Ordens ativas no período</small></article>
-            <article className="stat-card period-card"><div className="stat-label">Período de apuração <span className="stat-icon amber">!</span></div><strong className="period-value">{periodStart} - {periodEnd}</strong><small title={periodClient}>{periodClient}</small></article>
+            <article className="stat-card period-card"><div className="stat-label">Período de apuração <span className="stat-icon amber">!</span></div><strong className="period-value"><span>{periodStart}</span><i className="period-separator">—</i><span>{periodEnd}</span></strong><small title={periodClient}>{periodClient}</small></article>
             <article className="stat-card"><div className="stat-label">Encerradas <span className="stat-icon blue">✓</span></div><strong>{closedCount}</strong><small>Concluídas no período</small></article>
             <article className="stat-card production-card"><div className="stat-label">Produção do usuário <button className={`card-refresh ${cm2Loading ? "is-refreshing" : ""}`} type="button" onClick={() => void refreshProductionStats()} disabled={cm2Loading} aria-label="Atualizar produção do usuário" title="Atualizar produção do usuário"><span>↻</span></button></div><strong className="cm2-value">{cm2Loading && totalCm2 === null ? "—" : totalCm2 === null ? "—" : formatSquareMeters(totalCm2)}{totalCm2 !== null && <em> m²</em>}</strong><small className={cm2Error ? "metric-error" : ""}>{cm2Error ? cm2Error : cm2LastSync ? `Nucleus · atualizado às ${formatTime(cm2LastSync)}` : totalCm2 !== null ? "Valor salvo do Nucleus" : password ? "Carregando produção..." : "Entre novamente para atualizar"}</small></article>
           </div>
@@ -395,7 +403,6 @@ export default function Home() {
           </section>
         </div>
       </section>
-      <nav className="mobile-bottom-nav" aria-label="Navegação mobile"><Link href="/" aria-current="page"><span>◆</span>Visão geral</Link><Link href="/relatorios"><span>◇</span>Relatórios</Link><button type="button" onClick={logout}><span>●</span>Conta</button></nav>
          {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" type="button" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar modal">×</button></div><div className="modal-body"><p className="modal-copy">Defina o período e, se necessário, limite a consulta a um cliente.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{NUCLEUS_COMPANIES.map((company) => <option key={company.id} value={company.id}>{company.label}</option>)}</select></label>{dateError && <p className="form-error modal-error" role="alert">{dateError}</p>}</div><div className="modal-actions"><button className="secondary-button" type="button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" type="button" onClick={() => confirmRefresh("all")}>Atualizar dados</button></div></section></div>}
     </div>
     {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">

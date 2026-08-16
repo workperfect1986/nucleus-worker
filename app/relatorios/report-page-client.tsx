@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { jsPDF } from "jspdf";
 import { clearDashboardSnapshot, loadDashboardSnapshot, subscribeDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
 import type { WorkOrder } from "../../lib/nucleus/normalize";
@@ -31,6 +30,7 @@ export default function ReportPageClient() {
   const [sortKey, setSortKey] = useState<ReportSortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [pagination, setPagination] = useState({ key: "", page: 1 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const snapshotOrdersInPeriod = useMemo(() => snapshot?.orders.filter((order) => {
     const orderDate = order.createdAt.split(" às ")[0].split("/").reverse().join("-");
@@ -106,8 +106,14 @@ export default function ReportPageClient() {
 
   const activeCount = clientFilteredOrders.filter((order) => !order.isClosed).length;
   const closedCount = clientFilteredOrders.filter((order) => order.isClosed).length;
-  const goToDashboard = () => window.location.assign("/");
-  const goToReports = () => window.location.assign("/relatorios");
+  const goToDashboard = () => {
+    setMobileMenuOpen(false);
+    window.location.assign("/");
+  };
+  const goToReports = () => {
+    setMobileMenuOpen(false);
+    window.location.assign("/relatorios");
+  };
   const logout = () => {
     window.sessionStorage.removeItem(SESSION_KEY);
     clearDashboardSnapshot();
@@ -282,8 +288,10 @@ export default function ReportPageClient() {
         <header className="site-header">
           <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></button>
           <nav className="header-nav" aria-label="Navegação principal"><button className="header-nav-item" type="button" onClick={goToDashboard}><span>◆</span> Visão geral</button><button type="button" onClick={goToReports} className="header-nav-item active" aria-current="page"><span>◇</span> Relatórios</button></nav>
+          <button className={`mobile-menu-toggle ${mobileMenuOpen ? "open" : ""}`} type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-header-menu" aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}><span /><span /><span /></button>
           <div className="header-meta"><div className="header-connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens · {snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "aguardando"}</small></div></div><button className="header-user" type="button" onClick={logout} aria-label="Sair da conta"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Sair</small></span></button></div>
         </header>
+        {mobileMenuOpen && <nav className="mobile-menu-panel" id="mobile-header-menu" aria-label="Menu mobile"><button type="button" onClick={goToDashboard}><span>◆</span><span><strong>Visão geral</strong><small>Painel operacional</small></span></button><button type="button" className="active" onClick={goToReports} aria-current="page"><span>◇</span><span><strong>Relatórios</strong><small>Filtros e exportação</small></span></button><button type="button" className="mobile-menu-logout" onClick={logout}><span>●</span><span><strong>Sair da conta</strong><small>{snapshot?.email || "Studio Laser"}</small></span></button></nav>}
         <section className="workspace">
           <div className="content">
             <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Relatórios</h1><p>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)} · Selecione os dados para exportar.` : "Sincronize a dashboard para gerar um relatório."}</p></div><div className="page-actions"><button className="secondary-action" type="button" onClick={goToDashboard}><span>←</span> Visão geral</button><button className="refresh-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}><span>↓</span>{isGenerating ? "Gerando PDF..." : "Gerar relatório"}</button></div></div>
@@ -304,7 +312,6 @@ export default function ReportPageClient() {
           </div>
         </section>
       </div>
-      <nav className="mobile-bottom-nav" aria-label="Navegação mobile"><Link href="/"><span>◆</span>Visão geral</Link><Link href="/relatorios" aria-current="page"><span>◇</span>Relatórios</Link><button type="button" onClick={logout}><span>●</span>Conta</button></nav>
     </main>
     <section className="print-report" aria-hidden="true">
       <header className="print-report-header">
