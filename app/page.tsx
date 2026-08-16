@@ -340,16 +340,15 @@ export default function Home() {
 
   return <main className="app-shell" aria-busy={refreshing}>
     <div className="app-interface" inert={refreshing ? true : undefined} aria-hidden={refreshing || undefined}>
-      <aside className="sidebar">
-        <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-        <nav className="main-nav" aria-label="Navegação principal"><button className="nav-item active" type="button" aria-current="page"><span>◆</span> Visão geral</button><a href="/relatorios" className="nav-item"><span>◇</span> Relatórios</a></nav>
-        <div className="sidebar-bottom">
-          <div className={`connection ${syncPartial ? "partial" : ""}`}><span className="status-pulse" /><div><strong>{syncPartial ? "Dados parciais" : "Dados carregados"}</strong><small>{ordersInPeriod.length} ordens no período · {lastSync ? `atualizado às ${formatTime(lastSync)}` : "aguardando atualização"}</small></div></div>
-          <button className="user-row" onClick={logout}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair da conta</small></span><span className="more">•••</span></button>
+      <header className="site-header">
+        <div className="header-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
+        <nav className="header-nav" aria-label="Navegação principal"><Link className="header-nav-item active" href="/" aria-current="page"><span>◆</span> Visão geral</Link><Link href="/relatorios" className="header-nav-item"><span>◇</span> Relatórios</Link></nav>
+        <div className="header-meta">
+          <div className={`header-connection ${syncPartial ? "partial" : ""}`}><span className="status-pulse" /><div><strong>{syncPartial ? "Dados parciais" : "Dados carregados"}</strong><small>{ordersInPeriod.length} ordens · {lastSync ? formatTime(lastSync) : "aguardando"}</small></div></div>
+          <button className="header-user" onClick={logout} aria-label={`Sair da conta de ${email}`}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair</small></span></button>
         </div>
-      </aside>
+      </header>
       <section className="workspace">
-        <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Visão geral</strong></div><div className="topbar-actions"><span className="last-sync"><b className={`freshness-dot ${syncPartial ? "partial" : ""}`} />{syncPartial ? "Atualização parcial" : "Dados atualizados"} <strong>{lastSync ? formatTime(lastSync) : "—"}</strong></span><div className="top-avatar">{email.slice(0, 1).toUpperCase()}</div></div></header>
         <div className="content">
           <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · {client}</p></div><div className="page-actions"><a href="/relatorios" className="secondary-action"><span>↓</span> Relatório</a><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div></div>
           {notice && <div className={`notice ${noticeError ? "error" : syncPartial ? "partial" : ""}`} role="status" aria-live="polite"><span>{noticeError ? "!" : syncPartial ? "◷" : "✓"}</span>{notice}</div>}

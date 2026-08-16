@@ -50,6 +50,11 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(page, /normalizeWorkOrders/);
   assert.match(page, /Dados carregados/);
   assert.match(page, /Ordens por cliente/);
+  assert.match(page, /className="site-header"/);
+  assert.match(page, /className="header-nav"/);
+  assert.doesNotMatch(page, /className="sidebar"/);
+  assert.match(reportPage, /className="site-header"/);
+  assert.doesNotMatch(reportPage, /className="sidebar"/);
   assert.match(page, /mobile-bottom-nav/);
   assert.match(page, /auth-preview/);
   const closedTable = page.slice(page.indexOf('{tab === "closed"'), page.indexOf('<div className="mobile-order-list">'));

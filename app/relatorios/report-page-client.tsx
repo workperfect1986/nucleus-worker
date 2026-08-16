@@ -272,13 +272,12 @@ export default function ReportPageClient() {
     <>
     <main className="app-shell">
       <div className="app-interface">
-        <aside className="sidebar">
-          <div className="sidebar-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-          <nav className="main-nav" aria-label="Navegação principal"><button type="button" className="nav-item" onClick={goToDashboard}><span>◆</span> Visão geral</button><a href="/relatorios" className="nav-item active" aria-current="page"><span>◇</span> Relatórios</a></nav>
-          <div className="sidebar-bottom"><div className="connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens no período · {snapshot?.lastSync ? `atualizado às ${new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "aguardando atualização"}</small></div></div><div className="user-row"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Área de relatórios</small></span></div></div>
-        </aside>
+        <header className="site-header">
+          <div className="header-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
+          <nav className="header-nav" aria-label="Navegação principal"><Link className="header-nav-item" href="/"><span>◆</span> Visão geral</Link><Link href="/relatorios" className="header-nav-item active" aria-current="page"><span>◇</span> Relatórios</Link></nav>
+          <div className="header-meta"><div className="header-connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens · {snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "aguardando"}</small></div></div><div className="header-user"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Relatórios</small></span></div></div>
+        </header>
         <section className="workspace">
-          <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Relatórios</strong></div><div className="topbar-actions"><span className="last-sync"><b className="freshness-dot" />Dados atualizados <strong>{snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</strong></span><div className="top-avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</div></div></header>
           <div className="content">
             <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Relatórios</h1><p>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)} · Selecione os dados para exportar.` : "Sincronize a dashboard para gerar um relatório."}</p></div><div className="page-actions"><button className="secondary-action" type="button" onClick={goToDashboard}><span>←</span> Visão geral</button><button className="refresh-button" type="button" onClick={handleGeneratePdf} disabled={isGenerating || !snapshot}><span>↓</span>{isGenerating ? "Gerando PDF..." : "Gerar relatório"}</button></div></div>
             <div className="stats-grid frost-stats report-stats">
