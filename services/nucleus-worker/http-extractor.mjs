@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { buildActiveUrl, mergeActiveOrders } from "./active-source.mjs";
 import { nucleusCompanies } from "./companies.mjs";
 import { isClosedRow } from "./row-rules.mjs";
 
@@ -145,6 +146,33 @@ function parseOrders(html) {
   return { rows, totalPages: Math.max(1, ...pages) };
 }
 
+export function parseActiveOrders(html) {
+  const $ = cheerio.load(html);
+  const rows = [];
+  $("table tbody tr").each((_, row) => {
+    const cells = $(row).find("td").map((__, cell) => $(cell).text().trim()).get();
+    if (!cells.length) return;
+    const headers = $(row).closest("table").find("thead th").map((__, cell) => $(cell).text().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()).get();
+    const readColumn = (names, fallbackIndex) => {
+      const index = headers.findIndex((header) => names.some((name) => header.includes(name)));
+      return cells[index >= 0 ? index : fallbackIndex] || "";
+    };
+    const companyHref = $(row).find('a[href*="/crm/companies/"]').attr("href") || "";
+    rows.push({
+      id: readColumn(["id os", "os"], 0),
+      version: readColumn(["versao"], 1),
+      order: readColumn(["pedido"], 2),
+      name: readColumn(["nome"], 3),
+      client: readColumn(["cliente"], 4),
+      status: $(row).find("td[id^='etapa-atual-os-']").first().text().trim() || readColumn(["etapa", "status"], 5),
+      clientId: companyHref.match(/\/crm\/companies\/(\d+)/)?.[1],
+      label: $(row).text().trim(),
+    });
+  });
+  const pages = $("a[href*='page=']").map((_, link) => Number(new URL($(link).attr("href"), "https://studiolaser.nucleusapp.com.br").searchParams.get("page")) || 0).get();
+  return { rows, totalPages: Math.max(1, ...pages) };
+}
+
 async function extractCompany(client, baseUrl, company, filters, maxPages, cacheNamespace) {
   const cacheKey = JSON.stringify([cacheNamespace, company.id, filters.dateFrom || "", filters.dateTo || "", filters.userId || ""]);
   const cached = orderCache.get(cacheKey);
@@ -188,6 +216,29 @@ async function extractCompany(client, baseUrl, company, filters, maxPages, cache
     newRows: freshRows.filter((row) => !cachedKeys.has(JSON.stringify(row))).length,
     incrementalStop,
   };
+}
+
+async function extractActiveCompany(client, baseUrl, company, filters, maxPages) {
+  const rows = [];
+  const seen = new Set();
+  let totalPages = 0;
+  let pagesProcessed = 0;
+  for (let page = 1; page <= maxPages; page += 1) {
+    const response = await client.request(buildActiveUrl(baseUrl, company.id, filters, page));
+    if (!response.ok) throw new Error(`Nucleus active flow returned HTTP ${response.status}`);
+    const parsed = parseActiveOrders(await response.text());
+    pagesProcessed += 1;
+    totalPages = Math.max(totalPages, parsed.totalPages, page);
+    for (const row of parsed.rows) {
+      const key = normalizeId(row.id);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        rows.push({ ...row, companyId: company.id, companyName: company.name });
+      }
+    }
+    if (!parsed.rows.length) break;
+  }
+  return { rows, pagesProcessed, totalPages };
 }
 
 async function extractStatus(client, baseUrl, row, filters) {
@@ -253,8 +304,10 @@ export async function extractWithHttp(credentials, filters, config) {
     metrics.durationMs = Date.now() - startedAt;
     return { rows: orders.filter(isClosedRow), pagesProcessed, totalPages, stagesProcessed: 0, stageErrors: 0, metrics };
   }
-  const activeOrders = orders.filter((row) => !isClosedRow(row));
+  const activeExtracted = await mapWithConcurrency(companies, config.companyConcurrency, (company) => extractActiveCompany(client, config.activeUrl, company, filters, config.maxPages));
+  const activeOrders = mergeActiveOrders(activeExtracted.flatMap((result) => result.rows), orders);
   const statuses = await mapWithConcurrency(activeOrders, config.statusConcurrency, async (row) => {
+    if (row.status) return row.status;
     const key = `${cacheNamespace}:${normalizeId(row.id)}:${filters.userId || ""}`;
     const cached = statusCache.get(key);
     if (cached && Date.now() - cached.updatedAt < defaultStatusCacheTtlMs) {
@@ -268,9 +321,14 @@ export async function extractWithHttp(credentials, filters, config) {
   });
   const statusById = new Map();
   activeOrders.forEach((row, index) => { if (statuses[index]) statusById.set(normalizeId(row.id), statuses[index]); });
-  const rows = orders.map((row) => ({ ...row, status: statusById.get(normalizeId(row.id)) || row.status || "Não localizado no fluxo" })).filter((row) => filters.source !== "active" || !isClosedRow(row));
+  const enrichedActiveOrders = activeOrders.map((row) => ({ ...row, status: statusById.get(normalizeId(row.id)) || row.status || "Não localizado no fluxo" }));
+  const rows = filters.source === "active" ? enrichedActiveOrders : [...orders.filter(isClosedRow), ...enrichedActiveOrders];
+  const activePagesProcessed = activeExtracted.reduce((sum, result) => sum + result.pagesProcessed, 0);
+  const activeTotalPages = activeExtracted.reduce((sum, result) => sum + result.totalPages, 0);
+  metrics.pagesProcessed += activePagesProcessed;
+  metrics.activePagesProcessed = activePagesProcessed;
   metrics.httpRequests = client.metrics.requests;
   metrics.httpRequestMs = client.metrics.requestMs;
   metrics.durationMs = Date.now() - startedAt;
-  return { rows, pagesProcessed, totalPages, stagesProcessed: statuses.filter(Boolean).length, stageErrors: statuses.filter((status) => !status).length, metrics };
+  return { rows, pagesProcessed: pagesProcessed + activePagesProcessed, totalPages: totalPages + activeTotalPages, stagesProcessed: statuses.filter(Boolean).length, stageErrors: statuses.filter((status) => !status).length, metrics };
 }

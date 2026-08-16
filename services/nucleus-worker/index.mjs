@@ -1,6 +1,7 @@
 import http from "node:http";
 import { chromium } from "playwright";
 import { nucleusCompanies } from "./companies.mjs";
+import { mergeActiveOrders } from "./active-source.mjs";
 import { extractWithHttp } from "./http-extractor.mjs";
 import { isClosedRow } from "./row-rules.mjs";
 
@@ -136,8 +137,12 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
     // Keep the empty user filter from both source URLs unless the caller
     // explicitly selected a user.
     if (filters.userId) filteredPageUrl.searchParams.set("user_id", filters.userId);
-    filteredPageUrl.searchParams.set("date_de", formatQueryDate(effectiveDateFrom));
-    filteredPageUrl.searchParams.set("date_ate", formatQueryDate(effectiveDateTo));
+    filteredPageUrl.searchParams.set("date_de", source === "active" ? "" : formatQueryDate(effectiveDateFrom));
+    filteredPageUrl.searchParams.set("date_ate", source === "active" ? "" : formatQueryDate(effectiveDateTo));
+    if (source === "active") {
+      filteredPageUrl.searchParams.set("date_despacho_de", "");
+      filteredPageUrl.searchParams.set("date_despacho_ate", "");
+    }
     await gotoWithRetry(page, filteredPageUrl.toString(), { waitUntil: "domcontentloaded" });
     if (page.url().includes("/login")) throw new Error("Nucleus session expired during extraction");
     pagesProcessed += 1;
@@ -194,7 +199,7 @@ async function extractSource(page, sourceUrl, filters, source, companyId) {
   return { rows, pagesProcessed, totalPages };
 }
 
-async function extractOrdersByCompanies(context, filters) {
+async function extractByCompanies(context, filters, sourceUrl, source) {
   const companies = filters.clientId
     ? nucleusCompanies.filter((company) => company.id === String(filters.clientId))
     : nucleusCompanies;
@@ -211,7 +216,7 @@ async function extractOrdersByCompanies(context, filters) {
       nextIndex += 1;
       for (let attempt = 1; attempt <= 2; attempt += 1) {
         try {
-          const result = await extractSource(page, ordersUrl, filters, "orders", company.id);
+          const result = await extractSource(page, sourceUrl, filters, source, company.id);
           pagesProcessed += result.pagesProcessed;
           totalPages += result.totalPages;
           rows.push(...result.rows.map((row) => ({ ...row, companyId: company.id, companyName: company.name })));
@@ -236,23 +241,27 @@ async function extractWithBrowser(credentials, filters = {}) {
   try {
     await login(page, credentials);
     const source = filters.source || "all";
-    const ordersSource = await extractOrdersByCompanies(context, filters);
+    const ordersSource = await extractByCompanies(context, filters, ordersUrl, "orders");
     const orders = ordersSource.rows;
     if (source === "closed") {
       return { rows: orders.filter((row) => isClosedRow(row)), pagesProcessed: ordersSource.pagesProcessed, totalPages: ordersSource.totalPages, stagesProcessed: 0, stageErrors: 0 };
     }
-    const recoveredFlowRows = await recoverFlowRows(context, orders, filters);
-    const statusById = new Map(recoveredFlowRows.map((row) => [normalizeOrderId(row.id), row.status]));
-    const rows = orders.map((row) => ({
+    const activeSource = await extractByCompanies(context, filters, activeUrl, "active");
+    const activeOrders = mergeActiveOrders(activeSource.rows, orders);
+    const recoveredFlowRows = await recoverFlowRows(context, activeOrders.filter((row) => !row.status), filters);
+    const statusById = new Map(activeOrders.filter((row) => row.status).map((row) => [normalizeOrderId(row.id), row.status]));
+    recoveredFlowRows.forEach((row) => statusById.set(normalizeOrderId(row.id), row.status));
+    const enrichedActiveOrders = activeOrders.map((row) => ({
       ...row,
       status: statusById.get(normalizeOrderId(row.id)) || row.status || "Não localizado no fluxo",
-    })).filter((row) => source !== "active" || !isClosedRow(row));
+    }));
+    const rows = source === "active" ? enrichedActiveOrders : [...orders.filter(isClosedRow), ...enrichedActiveOrders];
     return {
       rows,
-      pagesProcessed: ordersSource.pagesProcessed,
-      totalPages: ordersSource.totalPages,
-      stagesProcessed: recoveredFlowRows.length,
-      stageErrors: orders.filter((row) => !isClosedRow(row) && !statusById.has(normalizeOrderId(row.id))).length,
+      pagesProcessed: ordersSource.pagesProcessed + activeSource.pagesProcessed,
+      totalPages: ordersSource.totalPages + activeSource.totalPages,
+      stagesProcessed: activeOrders.filter((row) => statusById.has(normalizeOrderId(row.id))).length,
+      stageErrors: activeOrders.filter((row) => !statusById.has(normalizeOrderId(row.id))).length,
     };
   } finally {
     await context.close();
