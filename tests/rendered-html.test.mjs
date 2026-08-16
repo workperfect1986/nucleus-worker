@@ -31,7 +31,7 @@ test("server-renders the Studio Laser login page", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Studio Laser · Central de trabalhos<\/title>/i);
+  assert.match(html, /<title>Studio Laser · Visão operacional<\/title>/i);
   assert.match(html, /Central de trabalhos/);
   assert.match(html, /E-mail do Nucleus/);
   assert.match(html, /Entrar e carregar dados/);
@@ -46,8 +46,11 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   ]);
 
   assert.match(page, /normalizeWorkOrders/);
-  assert.match(page, /Nucleus conectado/);
-  assert.match(layout, /title:\s*"Studio Laser · Central de trabalhos"/);
+  assert.match(page, /Dados carregados/);
+  assert.match(page, /Ordens por cliente/);
+  assert.match(page, /mobile-bottom-nav/);
+  assert.match(layout, /Studio Laser · Visão operacional/);
+  assert.match(layout, /og\.png/);
   assert.match(layout, /favicon\.svg/);
   assert.doesNotMatch(layout, /codex-preview|_sites-preview|SkeletonPreview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton|sites-preview/i);
