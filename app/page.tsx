@@ -120,7 +120,7 @@ export default function Home() {
     return matchesTab && haystack.includes(query.toLowerCase()) &&
       (client === "Todos os clientes" || order.client === client) &&
       (tab === "active" || ((!dateFrom || orderDate >= dateFrom) && (!dateTo || orderDate <= dateTo))) &&
-      (tab === "active" || (type === "Todos os tipos" || order.type === type)) &&
+      (type === "Todos os tipos" || order.type === type) &&
       (tab !== "active" || statusFilter === "Todos os status" || order.status === statusFilter);
   }).sort((left, right) => {
     const leftValue = getDashboardSortValue(left, sortKey);
@@ -304,10 +304,11 @@ export default function Home() {
     </main>;
   }
 
-  const activeCount = orders.filter((order) => !order.isClosed).length;
-  const closedCount = orders.filter((order) => order.isClosed).length;
-  const waitingCount = orders.filter((order) => order.status.toLowerCase().includes("aguardando")).length;
-  const activeOrders = orders.filter((order) => !order.isClosed);
+  const scopedOrders = client === "Todos os clientes" ? orders : orders.filter((order) => order.client === client);
+  const activeCount = scopedOrders.filter((order) => !order.isClosed).length;
+  const closedCount = scopedOrders.filter((order) => order.isClosed).length;
+  const waitingCount = scopedOrders.filter((order) => !order.isClosed && order.status.toLowerCase().includes("aguardando")).length;
+  const activeOrders = scopedOrders.filter((order) => !order.isClosed);
   const clientBreakdown = Array.from(activeOrders.reduce((counts, order) => {
     counts.set(order.client, (counts.get(order.client) ?? 0) + 1);
     return counts;
@@ -350,7 +351,7 @@ export default function Home() {
       <section className="workspace">
         <header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>Visão geral</strong></div><div className="topbar-actions"><span className="last-sync"><b className={`freshness-dot ${syncPartial ? "partial" : ""}`} />{syncPartial ? "Atualização parcial" : "Dados atualizados"} <strong>{lastSync ? formatTime(lastSync) : "—"}</strong></span><div className="top-avatar">{email.slice(0, 1).toUpperCase()}</div></div></header>
         <div className="content">
-          <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · Todos os clientes</p></div><div className="page-actions"><a href="/relatorios" className="secondary-action"><span>↓</span> Relatório</a><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div></div>
+          <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · {client}</p></div><div className="page-actions"><a href="/relatorios" className="secondary-action"><span>↓</span> Relatório</a><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div></div>
           {notice && <div className={`notice ${noticeError ? "error" : syncPartial ? "partial" : ""}`} role="status" aria-live="polite"><span>{noticeError ? "!" : syncPartial ? "◷" : "✓"}</span>{notice}</div>}
           <div className="stats-grid frost-stats">
             <article className="stat-card"><div className="stat-label">Em andamento <span className="stat-icon green">↗</span></div><strong>{activeCount}</strong><small>Ordens ativas no período</small></article>
