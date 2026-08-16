@@ -39,8 +39,10 @@ test("server-renders the Studio Laser login page", async () => {
 });
 
 test("keeps the application metadata and assets scoped to Studio Laser", async () => {
-  const [page, layout, packageJson] = await Promise.all([
+  const [page, reportPage, styles, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/relatorios/report-page-client.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
@@ -49,6 +51,18 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(page, /Dados carregados/);
   assert.match(page, /Ordens por cliente/);
   assert.match(page, /mobile-bottom-nav/);
+  assert.match(page, /auth-preview/);
+  const closedTable = page.slice(page.indexOf('{tab === "closed"'), page.indexOf('<div className="mobile-order-list">'));
+  assert.match(closedTable, /Cliente \/ nome/);
+  assert.match(closedTable, /toggleSort\("type"\)/);
+  assert.match(closedTable, /toggleSort\("createdAt"\)/);
+  assert.match(closedTable, />Etapa <span>/);
+  assert.doesNotMatch(closedTable, /toggleSort\("work"\)|toggleSort\("technology"\)/);
+  assert.match(reportPage, /frost-stats report-stats/);
+  assert.match(reportPage, /report-mobile-order-list/);
+  assert.match(reportPage, /<th>Ordem<\/th><th>Cliente \/ Nome<\/th><th>Tipo<\/th><th>Criado em<\/th><th>Status<\/th>/);
+  assert.match(styles, /Frost authentication/);
+  assert.match(styles, /Frost reports/);
   assert.match(layout, /Studio Laser · Visão operacional/);
   assert.match(layout, /og\.png/);
   assert.match(layout, /favicon\.svg/);
