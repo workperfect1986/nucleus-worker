@@ -69,6 +69,9 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(reportPage, /mobile-menu-toggle/);
   assert.doesNotMatch(reportPage, /mobile-bottom-nav/);
   assert.match(page, /auth-preview/);
+  assert.match(page, /studio-logo auth-logo/);
+  assert.match(page, /studio-logo header-logo/);
+  assert.match(reportPage, /studio-logo print-logo/);
   const closedTable = page.slice(page.indexOf('{tab === "closed"'), page.indexOf('<div className="mobile-order-list">'));
   assert.match(closedTable, /Cliente \/ nome/);
   assert.match(closedTable, /toggleSort\("createdAt"\)/);
@@ -87,6 +90,8 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.match(styles, /Frost reports/);
   assert.match(styles, /height:100dvh; min-height:0; overflow:hidden/);
   assert.match(styles, /period-card \.period-value.*display:grid/);
+  assert.match(styles, /logo_studiolaser\.svg/);
+  assert.match(styles, /mobile-order-top \.status-pill.*font-size:9px/);
   assert.match(page, /className="modal-body"/);
   assert.match(page, /event\.key === "Escape"/);
   assert.match(layout, /Studio Laser · Visão operacional/);

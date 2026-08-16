@@ -308,7 +308,7 @@ export default function Home() {
     return <main className="auth-shell">
       <section className="auth-panel">
         <div className="auth-content">
-          <div className="auth-brand"><div className="brand-mark"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
+          <div className="auth-brand"><span className="studio-logo auth-logo" aria-hidden="true" /><small>Painel operacional</small></div>
           <div className="eyebrow">ACESSO AO WORKSPACE</div>
           <h1>Central de trabalhos</h1>
           <p className="auth-subtitle">Entre com sua conta do Nucleus para carregar a visão operacional da Studio Laser.</p>
@@ -365,7 +365,7 @@ export default function Home() {
   return <main className="app-shell" aria-busy={refreshing}>
     <div className="app-interface" inert={refreshing ? true : undefined} aria-hidden={refreshing || undefined}>
       <header className="site-header">
-        <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></button>
+        <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><span className="studio-logo header-logo" aria-hidden="true" /><span className="header-brand-context">Operações</span></button>
         <nav className="header-nav" aria-label="Navegação principal"><button className="header-nav-item active" type="button" onClick={goToDashboard} aria-current="page"><span>◆</span> Visão geral</button><button type="button" onClick={goToReports} className="header-nav-item"><span>◇</span> Relatórios</button></nav>
         <button className={`mobile-menu-toggle ${mobileMenuOpen ? "open" : ""}`} type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-header-menu" aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}><span /><span /><span /></button>
         <div className="header-meta">

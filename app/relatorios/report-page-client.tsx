@@ -286,7 +286,7 @@ export default function ReportPageClient() {
     <main className="app-shell">
       <div className="app-interface">
         <header className="site-header">
-          <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></button>
+          <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><span className="studio-logo header-logo" aria-hidden="true" /><span className="header-brand-context">Operações</span></button>
           <nav className="header-nav" aria-label="Navegação principal"><button className="header-nav-item" type="button" onClick={goToDashboard}><span>◆</span> Visão geral</button><button type="button" onClick={goToReports} className="header-nav-item active" aria-current="page"><span>◇</span> Relatórios</button></nav>
           <button className={`mobile-menu-toggle ${mobileMenuOpen ? "open" : ""}`} type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="mobile-header-menu" aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}><span /><span /><span /></button>
           <div className="header-meta"><div className="header-connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens · {snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "aguardando"}</small></div></div><button className="header-user" type="button" onClick={logout} aria-label="Sair da conta"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Sair</small></span></button></div>
@@ -320,7 +320,7 @@ export default function ReportPageClient() {
           <h1>Relatório executivo</h1>
           <p>Produção consolidada do período selecionado</p>
         </div>
-        <div className="print-brand-mark">SL</div>
+        <span className="studio-logo print-logo" aria-label="Studio Laser" />
       </header>
       <div className="print-report-meta">
         <div><span>Período</span><strong>{snapshot ? `${formatDate(snapshot.dateFrom)} — ${formatDate(snapshot.dateTo)}` : "—"}</strong></div>
