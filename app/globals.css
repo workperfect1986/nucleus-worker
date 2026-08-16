@@ -442,12 +442,12 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .app-shell { background:radial-gradient(circle at 78% 0,rgba(48,102,82,.09),transparent 30%),var(--bg); }
 .app-shell .app-interface { flex-direction:column; background:transparent; }
 .site-header { position:sticky; z-index:70; top:0; min-height:68px; display:flex; align-items:center; gap:28px; padding:0 clamp(22px,3.4vw,48px); border-bottom:1px solid var(--line); background:rgba(10,15,21,.9); backdrop-filter:blur(16px); }
-.header-brand { flex:none; display:flex; align-items:center; gap:11px; }
+.header-brand { flex:none; display:flex; align-items:center; gap:11px; padding:0; border:0; background:transparent; color:inherit; text-align:left; }
 .header-brand strong,.header-brand small,.header-connection strong,.header-connection small,.header-user strong,.header-user small { display:block; }
 .header-brand strong { font-size:13px; }
 .header-brand small { margin-top:3px; color:var(--muted-2); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; }
 .header-nav { align-self:stretch; display:flex; align-items:center; gap:4px; }
-.header-nav-item { min-height:40px; display:inline-flex; align-items:center; gap:8px; padding:0 14px; border:1px solid transparent; border-radius:9px; color:var(--muted); font-size:12px; font-weight:700; text-decoration:none; }
+.header-nav-item { min-height:40px; display:inline-flex; align-items:center; gap:8px; padding:0 14px; border:1px solid transparent; border-radius:9px; background:transparent; color:var(--muted); font-size:12px; font-weight:700; text-decoration:none; }
 .header-nav-item span { color:var(--muted-2); font-size:12px; }
 .header-nav-item:hover { color:var(--accent-strong); background:rgba(114,220,176,.05); }
 .header-nav-item.active { color:var(--accent-strong); border-color:#29473d; background:linear-gradient(180deg,rgba(114,220,176,.13),rgba(114,220,176,.045)); }
@@ -579,8 +579,25 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .app-shell .table-footer { min-height:48px; padding:10px 18px; background:#0d1319; font-size:10px; }
 .app-shell .pagination button { width:30px; height:30px; border-radius:7px; background:var(--surface-2); }
 .mobile-order-list,.mobile-bottom-nav { display:none; }
-.app-shell .date-modal,.app-shell .sync-lock-card { border-radius:13px; background:var(--surface); border-color:var(--line); }
-.app-shell .modal-close,.app-shell .modal-date-grid input,.app-shell .modal-client-field select,.app-shell .secondary-button { border-radius:8px; }
+.app-shell .modal-backdrop { padding:16px; background:rgba(4,7,10,.78); backdrop-filter:blur(10px); }
+.app-shell .date-modal { width:min(580px,100%); max-height:calc(100dvh - 32px); overflow:auto; padding:0; border:1px solid #30453e; border-radius:16px; background:linear-gradient(155deg,#111a20,#0d141a); box-shadow:0 34px 100px rgba(0,0,0,.58); }
+.app-shell .modal-header { padding:23px 24px 19px; border-bottom:1px solid var(--line); background:linear-gradient(100deg,rgba(114,220,176,.07),transparent 65%); }
+.app-shell .modal-header h2 { margin-top:8px; color:#eff6f5; font-size:24px; letter-spacing:-.8px; }
+.app-shell .modal-close { width:36px; height:36px; border:1px solid var(--line); border-radius:9px; background:#141e25; color:#91a0a7; transition:border-color .15s,color .15s,background .15s; }
+.app-shell .modal-close:hover { border-color:#4e7668; background:#172720; color:var(--accent-strong); }
+.app-shell .modal-body { padding:21px 24px 23px; }
+.app-shell .modal-copy { margin:0 0 20px; color:var(--muted); font-size:12px; line-height:1.6; }
+.app-shell .modal-date-grid { gap:12px; }
+.app-shell .modal-date-grid > span { padding-bottom:14px; color:var(--muted-2); }
+.app-shell .modal-date-grid label,.app-shell .modal-client-field { color:#a9b9bd; font-size:9px; letter-spacing:.65px; text-transform:uppercase; }
+.app-shell .modal-date-grid input,.app-shell .modal-client-field select { height:46px; margin-top:8px; border:1px solid var(--line); border-radius:9px; padding:0 12px; background:#0a1117; color:#dce7e8; font-size:12px; color-scheme:dark; }
+.app-shell .modal-date-grid input:focus,.app-shell .modal-client-field select:focus { border-color:#4e9f82; box-shadow:0 0 0 3px rgba(114,220,176,.08); }
+.app-shell .modal-client-field { margin-top:17px; }
+.app-shell .modal-error { margin-top:13px !important; padding:9px 11px; border:1px solid #573633; border-radius:8px; background:#201514; }
+.app-shell .modal-actions { margin:0; padding:17px 24px 20px; border-top:1px solid var(--line); background:#0b1217; }
+.app-shell .modal-actions .primary-button,.app-shell .modal-actions .secondary-button { min-height:42px; padding:0 16px; border-radius:9px; }
+.app-shell .modal-actions .primary-button { background:var(--accent); color:#062219; }
+.app-shell .sync-lock-card { border-radius:13px; background:var(--surface); border-color:var(--line); }
 
 @media (max-width:1100px) {
   .site-header { gap:18px; }
@@ -668,6 +685,14 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
   .mobile-bottom-nav a[aria-current="page"] { color:var(--accent-strong); }
   .mobile-bottom-nav span { font-size:13px; }
   .app-shell .modal-backdrop,.app-shell .sync-lock { padding-bottom:86px; }
+  .app-shell .modal-backdrop { align-items:end; padding:12px 12px calc(80px + env(safe-area-inset-bottom)); }
+  .app-shell .date-modal { max-height:calc(100dvh - 96px - env(safe-area-inset-bottom)); border-radius:15px; }
+  .app-shell .modal-header { padding:19px 18px 16px; }
+  .app-shell .modal-body { padding:18px; }
+  .app-shell .modal-date-grid { grid-template-columns:1fr; }
+  .app-shell .modal-date-grid > span { display:none; }
+  .app-shell .modal-actions { display:grid; grid-template-columns:1fr 1fr; padding:14px 18px 17px; }
+  .app-shell .modal-actions .primary-button,.app-shell .modal-actions .secondary-button { min-height:46px; }
 }
 
 @media (max-width:390px) {
@@ -680,8 +705,8 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 }
 
 /* Frost authentication */
-.auth-shell { grid-template-columns:minmax(420px,.82fr) minmax(520px,1.18fr); background:radial-gradient(circle at 76% 20%,rgba(72,167,130,.12),transparent 28%),#090e13; }
-.auth-panel { position:relative; z-index:1; padding:clamp(42px,7vw,100px) clamp(34px,7vw,112px); border-color:var(--line); background:rgba(11,16,22,.94); }
+.auth-shell { width:100%; height:100dvh; min-height:0; overflow:hidden; grid-template-columns:minmax(420px,.82fr) minmax(520px,1.18fr); background:radial-gradient(circle at 76% 20%,rgba(72,167,130,.12),transparent 28%),#090e13; }
+.auth-panel { position:relative; z-index:1; min-height:0; height:100%; overflow:hidden; padding:clamp(30px,6vh,72px) clamp(34px,7vw,112px); border-color:var(--line); background:rgba(11,16,22,.94); }
 .auth-content { width:100%; max-width:420px; margin:auto; }
 .auth-brand { display:flex; align-items:center; gap:11px; margin-bottom:64px; }
 .auth-brand .brand-mark { width:40px; height:40px; margin:0; border:0; border-radius:11px; background:linear-gradient(145deg,#8ce8c1,#3eaa82); box-shadow:0 10px 30px rgba(78,197,151,.2); }
@@ -698,7 +723,7 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
 .auth-button { min-height:46px; margin-top:11px; border-radius:9px; background:var(--accent); color:#062219; }
 .auth-button:hover { background:var(--accent-strong); color:#062219; }
 .security-note { margin-top:17px; color:var(--muted-2); font-size:10px; }
-.auth-aside { position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:center; padding:clamp(50px,7vw,100px); background:linear-gradient(135deg,rgba(16,25,31,.96),rgba(9,14,19,.98)); }
+.auth-aside { position:relative; min-height:0; height:100%; overflow:hidden; display:flex; flex-direction:column; justify-content:center; padding:clamp(32px,6vh,76px) clamp(50px,7vw,100px); background:linear-gradient(135deg,rgba(16,25,31,.96),rgba(9,14,19,.98)); }
 .auth-aside:before { content:""; position:absolute; width:520px; height:520px; right:-130px; top:-170px; border-radius:50%; background:radial-gradient(circle,rgba(93,212,165,.16),transparent 68%); }
 .aside-grid { opacity:.34; background-size:42px 42px; }
 .auth-aside-copy,.auth-preview,.aside-footer { position:relative; z-index:1; }
@@ -734,8 +759,31 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:2px soli
   .auth-aside { display:none; }
 }
 
+@media (max-height:760px) {
+  .auth-brand { margin-bottom:28px; }
+  .auth-panel h1 { margin-block:8px; font-size:34px; }
+  .auth-subtitle { margin-bottom:16px; font-size:12px; line-height:1.45; }
+  .auth-form { gap:5px; padding:15px; }
+  .auth-form label { margin-top:4px; }
+  .auth-form input,.auth-button { min-height:40px; }
+  .security-note { margin-top:10px; }
+  .auth-aside h2 { font-size:clamp(38px,5vw,58px); }
+  .auth-preview { margin-top:20px; }
+  .auth-preview-stats i { height:48px; }
+}
+
+@media (max-height:520px) {
+  .auth-panel { padding-block:14px; }
+  .auth-brand { display:none; }
+  .auth-panel h1 { font-size:27px; }
+  .auth-subtitle { margin-bottom:9px; }
+  .auth-form { padding:10px 13px; }
+  .auth-form input,.auth-button { min-height:36px; }
+  .security-note { display:none; }
+}
+
 @media (max-width:680px) {
-  .auth-panel { min-height:100vh; padding:30px 20px; }
+  .auth-panel { min-height:0; height:100%; padding:clamp(18px,5vh,30px) 20px; }
   .auth-content { margin:auto; }
   .auth-brand { margin-bottom:44px; }
   .auth-panel h1 { font-size:35px; }

@@ -55,8 +55,13 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.doesNotMatch(page, />Aguardando <span className="stat-icon/);
   assert.match(page, /className="site-header"/);
   assert.match(page, /className="header-nav"/);
+  assert.match(page, /onClick=\{goToDashboard\} aria-current="page"/);
+  assert.match(page, /onClick=\{goToReports\} className="header-nav-item"/);
+  assert.match(page, /type="button" onClick=\{logout\}/);
   assert.doesNotMatch(page, /className="sidebar"/);
   assert.match(reportPage, /className="site-header"/);
+  assert.match(reportPage, /window\.sessionStorage\.removeItem\(SESSION_KEY\)/);
+  assert.match(reportPage, /<button className="header-user" type="button" onClick=\{logout\}/);
   assert.doesNotMatch(reportPage, /className="sidebar"/);
   assert.match(page, /mobile-bottom-nav/);
   assert.match(page, /auth-preview/);
@@ -76,6 +81,9 @@ test("keeps the application metadata and assets scoped to Studio Laser", async (
   assert.doesNotMatch(reportPage, /Todos os tipos|Filtrar tipo|type-pill|>Tipo<|order\.type/);
   assert.match(styles, /Frost authentication/);
   assert.match(styles, /Frost reports/);
+  assert.match(styles, /height:100dvh; min-height:0; overflow:hidden/);
+  assert.match(page, /className="modal-body"/);
+  assert.match(page, /event\.key === "Escape"/);
   assert.match(layout, /Studio Laser · Visão operacional/);
   assert.match(layout, /og\.png/);
   assert.match(layout, /favicon\.svg/);

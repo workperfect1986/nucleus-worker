@@ -3,12 +3,13 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { jsPDF } from "jspdf";
-import { loadDashboardSnapshot, subscribeDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
+import { clearDashboardSnapshot, loadDashboardSnapshot, subscribeDashboardSnapshot, type DashboardSnapshot } from "../../lib/dashboard/storage";
 import type { WorkOrder } from "../../lib/nucleus/normalize";
 import { getNucleusStatusTone } from "../../lib/nucleus/status";
 
 const formatDate = (value: string) => value.split("-").reverse().join("/");
 const PAGE_SIZE = 25;
+const SESSION_KEY = "studio-laser-dashboard-session";
 
 type ReportStatusFilter = "all" | "active" | "closed";
 type ReportSortKey = "id" | "client" | "work" | "technology" | "createdAt" | "status";
@@ -106,6 +107,12 @@ export default function ReportPageClient() {
   const activeCount = clientFilteredOrders.filter((order) => !order.isClosed).length;
   const closedCount = clientFilteredOrders.filter((order) => order.isClosed).length;
   const goToDashboard = () => window.location.assign("/");
+  const goToReports = () => window.location.assign("/relatorios");
+  const logout = () => {
+    window.sessionStorage.removeItem(SESSION_KEY);
+    clearDashboardSnapshot();
+    window.location.assign("/");
+  };
 
   const handleGeneratePdf = async () => {
     if (!snapshot) {
@@ -273,9 +280,9 @@ export default function ReportPageClient() {
     <main className="app-shell">
       <div className="app-interface">
         <header className="site-header">
-          <div className="header-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-          <nav className="header-nav" aria-label="Navegação principal"><Link className="header-nav-item" href="/"><span>◆</span> Visão geral</Link><Link href="/relatorios" className="header-nav-item active" aria-current="page"><span>◇</span> Relatórios</Link></nav>
-          <div className="header-meta"><div className="header-connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens · {snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "aguardando"}</small></div></div><div className="header-user"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Relatórios</small></span></div></div>
+          <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></button>
+          <nav className="header-nav" aria-label="Navegação principal"><button className="header-nav-item" type="button" onClick={goToDashboard}><span>◆</span> Visão geral</button><button type="button" onClick={goToReports} className="header-nav-item active" aria-current="page"><span>◇</span> Relatórios</button></nav>
+          <div className="header-meta"><div className="header-connection"><span className="status-pulse" /><div><strong>Dados carregados</strong><small>{snapshotOrdersInPeriod.length} ordens · {snapshot?.lastSync ? new Date(snapshot.lastSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "aguardando"}</small></div></div><button className="header-user" type="button" onClick={logout} aria-label="Sair da conta"><span className="avatar">{snapshot?.email.slice(0, 1).toUpperCase() || "S"}</span><span><strong>{snapshot?.email.split("@")[0] || "Studio Laser"}</strong><small>Sair</small></span></button></div>
         </header>
         <section className="workspace">
           <div className="content">
@@ -297,7 +304,7 @@ export default function ReportPageClient() {
           </div>
         </section>
       </div>
-      <nav className="mobile-bottom-nav" aria-label="Navegação mobile"><Link href="/"><span>◆</span>Visão geral</Link><Link href="/relatorios" aria-current="page"><span>◇</span>Relatórios</Link><Link href="/"><span>●</span>Conta</Link></nav>
+      <nav className="mobile-bottom-nav" aria-label="Navegação mobile"><Link href="/"><span>◆</span>Visão geral</Link><Link href="/relatorios" aria-current="page"><span>◇</span>Relatórios</Link><button type="button" onClick={logout}><span>●</span>Conta</button></nav>
     </main>
     <section className="print-report" aria-hidden="true">
       <header className="print-report-header">

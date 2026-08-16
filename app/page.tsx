@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { clearDashboardSnapshot, loadDashboardSnapshot, saveDashboardSnapshot } from "../lib/dashboard/storage";
 import { normalizeWorkOrders, type RawWorkOrder, type WorkOrder } from "../lib/nucleus/normalize";
@@ -256,6 +256,20 @@ export default function Home() {
     setRefreshModalOpen(true);
   };
 
+  useEffect(() => {
+    if (!refreshModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRefreshModalOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [refreshModalOpen]);
+
   const confirmRefresh = async (source: ExtractionSource) => {
     if (!draftDateFrom || !draftDateTo) {
       setDateError("Informe a data inicial e a data final.");
@@ -281,6 +295,8 @@ export default function Home() {
     setSyncPartial(false);
     clearDashboardSnapshot();
   };
+  const goToDashboard = () => window.location.assign("/");
+  const goToReports = () => window.location.assign("/relatorios");
 
   if (!authenticated) {
     return <main className="auth-shell">
@@ -343,11 +359,11 @@ export default function Home() {
   return <main className="app-shell" aria-busy={refreshing}>
     <div className="app-interface" inert={refreshing ? true : undefined} aria-hidden={refreshing || undefined}>
       <header className="site-header">
-        <div className="header-brand"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></div>
-        <nav className="header-nav" aria-label="Navegação principal"><Link className="header-nav-item active" href="/" aria-current="page"><span>◆</span> Visão geral</Link><Link href="/relatorios" className="header-nav-item"><span>◇</span> Relatórios</Link></nav>
+        <button className="header-brand" type="button" onClick={goToDashboard} aria-label="Studio Laser — Visão geral"><div className="brand-mark small"><span>SL</span></div><div><strong>Studio Laser</strong><small>Operações</small></div></button>
+        <nav className="header-nav" aria-label="Navegação principal"><button className="header-nav-item active" type="button" onClick={goToDashboard} aria-current="page"><span>◆</span> Visão geral</button><button type="button" onClick={goToReports} className="header-nav-item"><span>◇</span> Relatórios</button></nav>
         <div className="header-meta">
           <div className={`header-connection ${syncPartial ? "partial" : ""}`}><span className="status-pulse" /><div><strong>{syncPartial ? "Dados parciais" : "Dados carregados"}</strong><small>{ordersInPeriod.length} ordens · {lastSync ? formatTime(lastSync) : "aguardando"}</small></div></div>
-          <button className="header-user" onClick={logout} aria-label={`Sair da conta de ${email}`}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair</small></span></button>
+          <button className="header-user" type="button" onClick={logout} aria-label={`Sair da conta de ${email}`}><span className="avatar">{email.slice(0, 1).toUpperCase()}</span><span><strong>{email.split("@")[0]}</strong><small>Sair</small></span></button>
         </div>
       </header>
       <section className="workspace">
@@ -380,7 +396,7 @@ export default function Home() {
         </div>
       </section>
       <nav className="mobile-bottom-nav" aria-label="Navegação mobile"><Link href="/" aria-current="page"><span>◆</span>Visão geral</Link><Link href="/relatorios"><span>◇</span>Relatórios</Link><button type="button" onClick={logout}><span>●</span>Conta</button></nav>
-         {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar">×</button></div><p>Selecione a data inicial, a data final e o cliente para limitar a extração.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{NUCLEUS_COMPANIES.map((company) => <option key={company.id} value={company.id}>{company.label}</option>)}</select></label>{dateError && <p className="form-error modal-error">{dateError}</p>}<div className="modal-actions"><button className="secondary-button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" onClick={() => confirmRefresh("all")}>Atualizar dados</button></div></section></div>}
+         {refreshModalOpen && <div className="modal-backdrop"><section className="date-modal" role="dialog" aria-modal="true" aria-labelledby="refresh-modal-title"><div className="modal-header"><div><div className="eyebrow">SINCRONIZAÇÃO DO NUCLEUS</div><h2 id="refresh-modal-title">Atualizar dados</h2></div><button className="modal-close" type="button" onClick={() => setRefreshModalOpen(false)} aria-label="Fechar modal">×</button></div><div className="modal-body"><p className="modal-copy">Defina o período e, se necessário, limite a consulta a um cliente.</p><div className="modal-date-grid"><label>Data inicial<input type="date" value={draftDateFrom} onChange={(event) => { setDraftDateFrom(event.target.value); setDateError(""); }} /></label><span>até</span><label>Data final<input type="date" value={draftDateTo} onChange={(event) => { setDraftDateTo(event.target.value); setDateError(""); }} /></label></div><label className="modal-client-field">Cliente<select value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)}><option value="">Todos os clientes</option>{NUCLEUS_COMPANIES.map((company) => <option key={company.id} value={company.id}>{company.label}</option>)}</select></label>{dateError && <p className="form-error modal-error" role="alert">{dateError}</p>}</div><div className="modal-actions"><button className="secondary-button" type="button" onClick={() => setRefreshModalOpen(false)}>Cancelar</button><button className="primary-button" type="button" onClick={() => confirmRefresh("all")}>Atualizar dados</button></div></section></div>}
     </div>
     {refreshing && <div className="sync-lock" role="status" aria-live="assertive" aria-label="Sincronização em andamento">
       <section className="sync-lock-card">
