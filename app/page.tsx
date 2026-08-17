@@ -301,7 +301,11 @@ export default function Home() {
   };
   const goToReports = () => {
     setMobileMenuOpen(false);
-    window.location.assign("/relatorios");
+    const params = new URLSearchParams();
+    if (client !== "Todos os clientes") params.set("client", client);
+    if (query) params.set("query", query);
+    params.set("status", tab === "closed" ? "closed" : "active");
+    window.location.assign(`/relatorios?${params.toString()}`);
   };
 
   if (!authenticated) {
@@ -376,7 +380,7 @@ export default function Home() {
       {mobileMenuOpen && <nav className="mobile-menu-panel" id="mobile-header-menu" aria-label="Menu mobile"><button type="button" className="active" onClick={goToDashboard} aria-current="page"><span>◆</span><span><strong>Visão geral</strong><small>Painel operacional</small></span></button><button type="button" onClick={goToReports}><span>◇</span><span><strong>Relatórios</strong><small>Filtros e exportação</small></span></button><button type="button" className="mobile-menu-logout" onClick={logout}><span>●</span><span><strong>Sair da conta</strong><small>{email}</small></span></button></nav>}
       <section className="workspace">
         <div className="content">
-          <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · {client}</p></div><div className="page-actions"><a href="/relatorios" className="secondary-action"><span>↓</span> Relatório</a><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div></div>
+          <div className="page-heading"><div><div className="eyebrow">STUDIO LASER / NUCLEUS</div><h1>Visão operacional</h1><p>{dateFrom.split("-").reverse().join("/")} — {dateTo.split("-").reverse().join("/")} · {client}</p></div><div className="page-actions"><a href={`/relatorios?${new URLSearchParams({ ...(client !== "Todos os clientes" ? { client } : {}), ...(query ? { query } : {}), status: tab === "closed" ? "closed" : "active" }).toString()}`} className="secondary-action"><span>↓</span> Relatório</a><button className={`refresh-button ${refreshing ? "is-refreshing" : ""}`} onClick={openRefreshModal} disabled={refreshing}><span>↻</span>{refreshing ? "Sincronizando..." : "Atualizar dados"}</button></div></div>
           {notice && <div className={`notice ${noticeError ? "error" : syncPartial ? "partial" : ""}`} role="status" aria-live="polite"><span>{noticeError ? "!" : syncPartial ? "◷" : "✓"}</span>{notice}</div>}
           <div className="stats-grid frost-stats">
             <article className="stat-card"><div className="stat-label">Em andamento <span className="stat-icon green">↗</span></div><strong>{activeCount}</strong><small>Ordens ativas no período</small></article>
