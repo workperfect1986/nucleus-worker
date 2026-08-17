@@ -15,7 +15,6 @@ export const nucleusCompanies = Object.freeze([
   { name: "REA", id: "64495" },
   { name: "RELIPEL", id: "21419" },
   { name: "RIACHO", id: "17615" },
-  { name: "RIONOVO", id: "17618" },
   { name: "SIDPLASTIC", id: "31277" },
   { name: "SOLPP", id: "20658" },
   { name: "TODER", id: "17720" },
