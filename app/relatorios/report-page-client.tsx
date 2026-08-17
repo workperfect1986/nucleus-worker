@@ -126,6 +126,15 @@ export default function ReportPageClient() {
     const reportSnapshot = snapshot;
 
     setIsGenerating(true);
+    setStatusMessage("Abrindo a visualização de impressão...");
+    window.setTimeout(() => {
+      window.print();
+      setIsGenerating(false);
+      setStatusMessage(`Relatório pronto para salvar em PDF com ${printableOrders.length} ordem(s).`);
+    }, 0);
+    return;
+
+    setIsGenerating(true);
     setStatusMessage("");
 
     try {
@@ -166,7 +175,7 @@ export default function ReportPageClient() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(173, 186, 194);
-         doc.text(`Ordens incluídas: ${allFilteredOrders.length}`, pageWidth - margin - 140, 86);
+        doc.text(`Ordens incluídas: ${filteredOrders.length}`, pageWidth - margin - 140, 86);
 
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
@@ -236,7 +245,7 @@ export default function ReportPageClient() {
       addHeader(contentTop - 14);
       y += tableHeaderHeight + 8;
 
-       if (allFilteredOrders.length === 0) {
+      if (filteredOrders.length === 0) {
         doc.setFillColor(18, 25, 33);
         doc.roundedRect(margin, y, innerWidth, 70, 8, 8, "F");
         doc.setFont("helvetica", "bold");
@@ -248,7 +257,7 @@ export default function ReportPageClient() {
         doc.setTextColor(175, 187, 195);
         doc.text("Ajuste as opções de cliente ou status para gerar um novo relatório.", margin + 18, y + 52);
       } else {
-         allFilteredOrders.forEach((order, index) => {
+        filteredOrders.forEach((order, index) => {
           if (y + rowHeight > pageHeight - 40) {
             startNewPage();
           }
@@ -259,7 +268,7 @@ export default function ReportPageClient() {
 
       const fileName = `relatorio-studio-laser-${new Date().toISOString().slice(0, 10)}.pdf`;
       doc.save(fileName);
-       setStatusMessage(`PDF gerado com ${allFilteredOrders.length} ordem(s) usando os filtros selecionados.`);
+      setStatusMessage(`PDF gerado com ${filteredOrders.length} ordem(s) usando os filtros selecionados.`);
     } catch (error) {
       const errorRecord = error as { message?: unknown };
       const message: string = typeof errorRecord.message === "string"
