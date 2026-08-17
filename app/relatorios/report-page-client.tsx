@@ -88,15 +88,8 @@ export default function ReportPageClient() {
     });
   };
   const filteredOrders = allFilteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const printableOrders = useMemo(() => [...allFilteredOrders].sort((left, right) => {
-    const clientComparison = left.client.localeCompare(right.client, "pt-BR", { sensitivity: "base" });
-    if (clientComparison !== 0) return clientComparison;
-
-    const nameComparison = left.name.localeCompare(right.name, "pt-BR", { sensitivity: "base" });
-    if (nameComparison !== 0) return nameComparison;
-
-    return Number(left.id) - Number(right.id);
-  }), [allFilteredOrders]);
+  // The print view must use the exact same filtered and sorted collection as the table.
+  const printableOrders = allFilteredOrders;
 
   const clientLabel = selectedClients.length === 0
     ? "Todos os clientes"
@@ -131,15 +124,6 @@ export default function ReportPageClient() {
       return;
     }
     const reportSnapshot = snapshot;
-
-    setIsGenerating(true);
-    setStatusMessage("Abrindo a visualização de impressão...");
-    window.setTimeout(() => {
-      window.print();
-      setIsGenerating(false);
-      setStatusMessage(`Relatório pronto para salvar em PDF com ${printableOrders.length} ordem(s).`);
-    }, 0);
-    return;
 
     setIsGenerating(true);
     setStatusMessage("");
@@ -182,7 +166,7 @@ export default function ReportPageClient() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(173, 186, 194);
-        doc.text(`Ordens incluídas: ${filteredOrders.length}`, pageWidth - margin - 140, 86);
+         doc.text(`Ordens incluídas: ${allFilteredOrders.length}`, pageWidth - margin - 140, 86);
 
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
@@ -252,7 +236,7 @@ export default function ReportPageClient() {
       addHeader(contentTop - 14);
       y += tableHeaderHeight + 8;
 
-      if (filteredOrders.length === 0) {
+       if (allFilteredOrders.length === 0) {
         doc.setFillColor(18, 25, 33);
         doc.roundedRect(margin, y, innerWidth, 70, 8, 8, "F");
         doc.setFont("helvetica", "bold");
@@ -264,7 +248,7 @@ export default function ReportPageClient() {
         doc.setTextColor(175, 187, 195);
         doc.text("Ajuste as opções de cliente ou status para gerar um novo relatório.", margin + 18, y + 52);
       } else {
-        filteredOrders.forEach((order, index) => {
+         allFilteredOrders.forEach((order, index) => {
           if (y + rowHeight > pageHeight - 40) {
             startNewPage();
           }
@@ -275,7 +259,7 @@ export default function ReportPageClient() {
 
       const fileName = `relatorio-studio-laser-${new Date().toISOString().slice(0, 10)}.pdf`;
       doc.save(fileName);
-      setStatusMessage(`PDF gerado com ${filteredOrders.length} ordem(s) usando os filtros selecionados.`);
+       setStatusMessage(`PDF gerado com ${allFilteredOrders.length} ordem(s) usando os filtros selecionados.`);
     } catch (error) {
       const errorRecord = error as { message?: unknown };
       const message: string = typeof errorRecord.message === "string"
