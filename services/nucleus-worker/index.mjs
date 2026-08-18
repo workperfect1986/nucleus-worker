@@ -216,7 +216,8 @@ async function extractByCompanies(context, filters, sourceUrl, source) {
       nextIndex += 1;
       for (let attempt = 1; attempt <= 2; attempt += 1) {
         try {
-          const result = await extractSource(page, sourceUrl, filters, source, company.id);
+          const companySourceUrl = source === "orders" ? company.ordersUrl || sourceUrl : sourceUrl;
+          const result = await extractSource(page, companySourceUrl, filters, source, company.id);
           pagesProcessed += result.pagesProcessed;
           totalPages += result.totalPages;
           rows.push(...result.rows.map((row) => ({ ...row, companyId: company.id, companyName: company.name })));

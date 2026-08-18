@@ -15,6 +15,7 @@ export const nucleusCompanies = Object.freeze([
   { name: "REA", id: "64495" },
   { name: "RELIPEL", id: "21419" },
   { name: "RIACHO", id: "17615" },
+  { name: "RIONOVO", id: "17618", ordersUrl: "https://studiolaser.nucleusapp.com.br/ordem_servico?utf8=%E2%9C%93&chave=&os_id=&work_order_id=&company_id=17618&date_de=&date_ate=&cod_produto=&id_terceiro=&tipo=&classificacao=&situacao=&tecnologia=&material=&espessura=&nivel_dificuldade=&user_id=7012&finalizado=&cod_barras=&local_gravacao_id=&calculo_z=&financial_system_code=&commit=Filtrar" },
   { name: "SIDPLASTIC", id: "31277" },
   { name: "SOLPP", id: "20658" },
   { name: "TODER", id: "17720" },

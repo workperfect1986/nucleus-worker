@@ -281,7 +281,7 @@ export async function extractWithHttp(credentials, filters, config) {
   await login(client, credentials, config.target);
   const companies = filters.clientId ? nucleusCompanies.filter((company) => company.id === String(filters.clientId)) : nucleusCompanies;
   const cacheNamespace = credentials.email || "anonymous";
-  const extracted = await mapWithConcurrency(companies, config.companyConcurrency, (company) => extractCompany(client, config.ordersUrl, company, filters, config.maxPages, cacheNamespace));
+    const extracted = await mapWithConcurrency(companies, config.companyConcurrency, (company) => extractCompany(client, company.ordersUrl || config.ordersUrl, company, filters, config.maxPages, cacheNamespace));
   const orders = extracted.flatMap((result) => result.rows);
   const pagesProcessed = extracted.reduce((sum, result) => sum + result.pagesProcessed, 0);
   const totalPages = extracted.reduce((sum, result) => sum + result.totalPages, 0);
