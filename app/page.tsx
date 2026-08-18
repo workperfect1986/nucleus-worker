@@ -48,7 +48,7 @@ const NUCLEUS_COMPANIES = [
   { id: "50416", label: "OLP" }, { id: "17546", label: "PACKSEVEN" }, { id: "58826", label: "PACKWEL" },
   { id: "58853", label: "PLASTLOG" }, { id: "32046", label: "POLYPLASTIC" }, { id: "31328", label: "PRIMEFLEX" },
   { id: "17589", label: "PULIT" }, { id: "64495", label: "REA" }, { id: "21419", label: "RELIPEL" },
-  { id: "17615", label: "RIACHO" }, { id: "31277", label: "SIDPLASTIC" }, { id: "20658", label: "SOLPP" },
+  { id: "17615", label: "RIACHO" }, { id: "17618", label: "RIONOVO" }, { id: "31277", label: "SIDPLASTIC" }, { id: "20658", label: "SOLPP" },
   { id: "17720", label: "TODER" }, { id: "21520", label: "ZARAPLAST" },
 ];
 const currentMonth = {
