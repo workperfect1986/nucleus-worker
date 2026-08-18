@@ -19,7 +19,8 @@ export type RawWorkOrder = Partial<WorkOrder> & { finalizado?: string; label?: s
 /** Keeps the external source rule in one place so the UI never depends on Nucleus markup. */
 export function isClosedWorkOrder(row: RawWorkOrder): boolean {
   if (typeof row.isClosed === "boolean") return row.isClosed;
-  const statusText = `${row.finalizado ?? ""} ${row.label ?? ""} ${row.status ?? ""}`
+  const labelText = String(row.clientId ?? "") === "17618" ? "" : row.label ?? "";
+  const statusText = `${row.finalizado ?? ""} ${labelText} ${row.status ?? ""}`
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();

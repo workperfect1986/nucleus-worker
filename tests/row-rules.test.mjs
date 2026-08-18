@@ -9,4 +9,6 @@ test("does not send closed orders to stage lookup", () => {
   assert.equal(isClosedRow({ status: "Concluído" }), true);
   assert.equal(isClosedRow({ label: "OS 123 Em produção" }), false);
   assert.equal(isClosedRow({ isClosed: false, label: "Versão 1 encerrada · Versão 2 em finalização" }), false);
+  assert.equal(isClosedRow({ clientId: "17618", label: "Tag Finalizado" }), false);
+  assert.equal(isClosedRow({ clientId: "17618", status: "Finalizado", label: "Tag" }), true);
 });
