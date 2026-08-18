@@ -27,7 +27,7 @@ export function isClosedWorkOrder(row: RawWorkOrder): boolean {
 }
 
 export function normalizeWorkOrders(rows: RawWorkOrder[]): WorkOrder[] {
-  return rows.map((row) => ({
+  const normalizedRows = rows.map((row) => ({
     id: row.id ?? "—", client: row.client ?? "Cliente não informado", name: row.name ?? "Sem nome",
     clientId: row.clientId,
     version: row.version ?? "—", order: row.order ?? "—", technology: row.technology ?? "—",
@@ -35,4 +35,13 @@ export function normalizeWorkOrders(rows: RawWorkOrder[]): WorkOrder[] {
     work: row.work ?? "—", status: row.status ?? (isClosedWorkOrder(row) ? "Encerrado" : "Sem status"),
     isClosed: isClosedWorkOrder(row),
   }));
+
+  const uniqueRows = new Map<string, WorkOrder>();
+  normalizedRows.forEach((row, index) => {
+    const identity = row.id === "—"
+      ? `unknown:${index}`
+      : `${row.clientId ?? row.client}:${row.id}:${row.version}:${row.order}`;
+    uniqueRows.set(identity, row);
+  });
+  return Array.from(uniqueRows.values());
 }
