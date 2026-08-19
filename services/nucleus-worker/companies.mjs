@@ -2,6 +2,7 @@ export const nucleusCompanies = Object.freeze([
   { name: "CETI", id: "17110" },
   { name: "DELTABAG", id: "63864" },
   { name: "EPEMA", id: "17214" },
+  { name: "INSAC", id: "67046" },
   { name: "LIRAFLEX", id: "31227" },
   { name: "MECCAPLAST", id: "21599" },
   { name: "OI", id: "60428" },

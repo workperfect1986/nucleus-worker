@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { nucleusCompanies } from "../services/nucleus-worker/companies.mjs";
 
-test("keeps the 21 Nucleus companies with unique ids", () => {
-  assert.equal(nucleusCompanies.length, 21);
-  assert.equal(new Set(nucleusCompanies.map((company) => company.name)).size, 21);
-  assert.equal(new Set(nucleusCompanies.map((company) => company.id)).size, 21);
+test("keeps the 22 Nucleus companies with unique ids", () => {
+  assert.equal(nucleusCompanies.length, 22);
+  assert.equal(new Set(nucleusCompanies.map((company) => company.name)).size, 22);
+  assert.equal(new Set(nucleusCompanies.map((company) => company.id)).size, 22);
   assert.ok(nucleusCompanies.every((company) => /^\d+$/.test(company.id)));
 });
 

@@ -44,6 +44,7 @@ const PAGE_SIZE = 25;
 const SESSION_KEY = "studio-laser-dashboard-session";
 const NUCLEUS_COMPANIES = [
   { id: "17110", label: "CETI" }, { id: "63864", label: "DELTABAG" }, { id: "17214", label: "EPEMA" },
+  { id: "67046", label: "INSAC" },
   { id: "31227", label: "LIRAFLEX" }, { id: "21599", label: "MECCAPLAST" }, { id: "60428", label: "OI" },
   { id: "50416", label: "OLP" }, { id: "17546", label: "PACKSEVEN" }, { id: "58826", label: "PACKWEL" },
   { id: "58853", label: "PLASTLOG" }, { id: "32046", label: "POLYPLASTIC" }, { id: "31328", label: "PRIMEFLEX" },
